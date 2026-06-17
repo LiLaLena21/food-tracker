@@ -358,6 +358,30 @@
   .bar.exception { background: #8a3028; }
   .bar-day { font-size: 10px; color: var(--text-dim); }
 
+  /* PERIOD SWITCHER */
+  .period-switcher {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 20px;
+  }
+  .period-btn {
+    flex: 1;
+    padding: 8px 4px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-dim);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .period-btn.active {
+    background: var(--accent-faint);
+    border-color: var(--accent-dim);
+    color: var(--accent);
+  }
+
   /* FOODS */
   .food-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 20px; }
   .food-item { display: flex; align-items: center; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; gap: 10px; }
@@ -489,13 +513,20 @@
 
 <!-- WEEK -->
 <div class="section" id="tab-week">
+  <div class="period-switcher">
+    <button class="period-btn active" onclick="setPeriod(7, this)">7 T</button>
+    <button class="period-btn" onclick="setPeriod(14, this)">14 T</button>
+    <button class="period-btn" onclick="setPeriod(30, this)">1 M</button>
+    <button class="period-btn" onclick="setPeriod(90, this)">3 M</button>
+    <button class="period-btn" onclick="setPeriod(180, this)">6 M</button>
+  </div>
   <div class="week-summary-cards" id="weekSummaryCards"></div>
-  <div class="chart-label">kcal – letzte 7 Tage</div>
+  <div class="chart-label" id="chartLabel">kcal – letzte 7 Tage</div>
   <div class="bar-chart" id="barChart"></div>
   <table class="week-table">
     <thead>
       <tr>
-        <th>Tag</th>
+        <th id="colPeriod">Tag</th>
         <th>kcal</th>
         <th>Eiweiß</th>
         <th>KH</th>
@@ -798,11 +829,60 @@ async function confirmEntry() {
 }
 
 // WEEK VIEW
+let currentPeriod = 7;
+
+function setPeriod(days, btn) {
+  currentPeriod = days;
+  document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const labels = {7:'7 Tage', 14:'14 Tage', 30:'1 Monat', 90:'3 Monate', 180:'6 Monate'};
+  document.getElementById('chartLabel').textContent = `kcal – letzte ${labels[days]}`;
+  document.getElementById('colPeriod').textContent = days <= 14 ? 'Tag' : 'Woche';
+  loadWeekView();
+}
+
+function getPeriodDays() {
+  const days = [];
+  for (let i = currentPeriod - 1; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    days.push(d.toISOString().slice(0, 10));
+  }
+  return days;
+}
+
+function groupByWeek(days, byDay, tdeeByDay, exDates) {
+  // Group days into calendar weeks (Mon-Sun), return array of week objects
+  const weeks = [];
+  let current = null;
+  days.forEach(d => {
+    const date = new Date(d + 'T12:00:00');
+    const dow = (date.getDay() + 6) % 7; // 0=Mon
+    if (!current || dow === 0) {
+      if (current) weeks.push(current);
+      current = { label: formatDateShort(d), days: [], kcal: 0, protein: 0, carbs: 0, sugar: 0, tdee: 0, deficit: 0, nFood: 0, nTdee: 0, hasException: false };
+    }
+    current.days.push(d);
+    const data = byDay[d] || { kcal: 0, protein: 0, carbs: 0, sugar: 0, hasData: false };
+    const tdee = tdeeByDay[d] || null;
+    if (data.hasData) {
+      current.kcal += data.kcal;
+      current.protein += data.protein;
+      current.carbs += data.carbs;
+      current.sugar += data.sugar;
+      current.nFood++;
+    }
+    if (tdee) { current.tdee += tdee; current.nTdee++; }
+    if (data.hasData && tdee) current.deficit += (tdee - data.kcal);
+    if (exDates.has(d)) current.hasException = true;
+  });
+  if (current) weeks.push(current);
+  return weeks;
+}
+
 async function loadWeekView() {
-  const days = getLast7Days();
+  const days = getPeriodDays();
   const from = days[0], to = days[days.length - 1];
-  // TDEE for day D was logged on D+1, so fetch tdee_entries from days[1] through day after to
-  const tdeeFrom = days[1];
+  const tdeeFrom = days.length > 1 ? days[1] : days[0];
   const tdeeTo = dateOffset(to, 1);
 
   const [entries, exceptions, tdeeRows] = await Promise.all([
@@ -813,15 +893,12 @@ async function loadWeekView() {
 
   const exDates = new Set((exceptions || []).map(e => e.date));
 
-  // Build TDEE map: coversDate -> tdee value
-  // row.date = day logged; covers day before (row.date - 1)
   const tdeeByDay = {};
   (tdeeRows || []).forEach(row => {
     const covers = dateOffset(row.date, -1);
     tdeeByDay[covers] = parseFloat(row.tdee);
   });
 
-  // Aggregate log_entries
   const byDay = {};
   days.forEach(d => { byDay[d] = { kcal: 0, carbs: 0, protein: 0, sugar: 0, hasData: false }; });
   (entries || []).forEach(e => {
@@ -835,8 +912,14 @@ async function loadWeekView() {
   });
 
   renderWeekSummary(days, byDay, tdeeByDay);
-  renderWeekTable(days, byDay, tdeeByDay, exDates);
-  renderBarChart(days, byDay, exDates);
+  if (currentPeriod <= 14) {
+    renderWeekTable(days, byDay, tdeeByDay, exDates);
+    renderBarChart(days, byDay, exDates);
+  } else {
+    const weeks = groupByWeek(days, byDay, tdeeByDay, exDates);
+    renderWeekTableGrouped(weeks);
+    renderBarChartGrouped(weeks);
+  }
 }
 
 function renderWeekSummary(days, byDay, tdeeByDay) {
@@ -900,6 +983,59 @@ function renderWeekTable(days, byDay, tdeeByDay, exDates) {
   const defEl = document.getElementById('totalDeficit');
   defEl.textContent = nBoth > 0 ? (td >= 0 ? '−' : '+') + Math.abs(Math.round(td)) + ' Σ' : '—';
   defEl.className = nBoth > 0 ? (td >= 0 ? 'deficit-cell' : 'surplus-cell') : '';
+}
+
+function renderWeekTableGrouped(weeks) {
+  let nW = 0, totals = { kcal: 0, protein: 0, carbs: 0, sugar: 0, tdee: 0, deficit: 0 };
+  document.getElementById('weekBody').innerHTML = weeks.map(w => {
+    const hasFood = w.nFood > 0;
+    const hasTdee = w.nTdee > 0;
+    const avgKcal = hasFood ? Math.round(w.kcal / w.nFood) : null;
+    const def = hasTdee && hasFood ? w.deficit : null;
+    const defCls = def === null ? '' : def >= 0 ? 'deficit-cell' : 'surplus-cell';
+    const defHtml = def === null ? '—' : (def >= 0 ? '−' : '+') + Math.abs(Math.round(def));
+    if (hasFood) {
+      nW++;
+      totals.kcal += w.kcal / w.nFood;
+      totals.protein += w.protein / w.nFood;
+      totals.carbs += w.carbs / w.nFood;
+      totals.sugar += w.sugar / w.nFood;
+    }
+    if (hasTdee) totals.tdee += w.tdee / w.nTdee;
+    if (def !== null) totals.deficit += def;
+    const exBadge = w.hasException ? ' ✦' : '';
+    return `<tr>
+      <td>${w.label}${exBadge}</td>
+      <td>${avgKcal !== null ? avgKcal : '—'}</td>
+      <td>${hasFood ? (w.protein / w.nFood).toFixed(1) : '—'}</td>
+      <td>${hasFood ? (w.carbs / w.nFood).toFixed(1) : '—'}</td>
+      <td>${hasFood ? (w.sugar / w.nFood).toFixed(1) : '—'}</td>
+      <td>${hasTdee ? Math.round(w.tdee / w.nTdee) : '—'}</td>
+      <td class="${defCls}">${defHtml}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('avgKcal').textContent = nW > 0 ? Math.round(totals.kcal / nW) : '—';
+  document.getElementById('avgProtein').textContent = nW > 0 ? (totals.protein / nW).toFixed(1) : '—';
+  document.getElementById('avgCarbs').textContent = nW > 0 ? (totals.carbs / nW).toFixed(1) : '—';
+  document.getElementById('avgSugar').textContent = nW > 0 ? (totals.sugar / nW).toFixed(1) : '—';
+  document.getElementById('avgTdee').textContent = nW > 0 ? Math.round(totals.tdee / nW) : '—';
+  const td = totals.deficit;
+  const defEl = document.getElementById('totalDeficit');
+  defEl.textContent = nW > 0 ? (td >= 0 ? '−' : '+') + Math.abs(Math.round(td)) + ' Σ' : '—';
+  defEl.className = nW > 0 ? (td >= 0 ? 'deficit-cell' : 'surplus-cell') : '';
+}
+
+function renderBarChartGrouped(weeks) {
+  const max = Math.max(...weeks.map(w => w.nFood > 0 ? w.kcal / w.nFood : 0), 1);
+  document.getElementById('barChart').innerHTML = weeks.map(w => {
+    const avg = w.nFood > 0 ? w.kcal / w.nFood : 0;
+    const pct = (avg / max) * 100;
+    const isCurrentWeek = w.days.includes(TODAY);
+    const cls = isCurrentWeek ? 'today' : w.hasException ? 'exception' : '';
+    const label = formatDateShort(w.days[0]).slice(0, 5);
+    return `<div class="bar-wrap"><div class="bar ${cls}" style="height:${Math.max(pct, 3)}%"></div><span class="bar-day">${label}</span></div>`;
+  }).join('');
 }
 
 function renderBarChart(days, byDay, exDates) {
