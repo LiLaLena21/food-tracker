@@ -445,7 +445,7 @@
 
 <div class="tabs">
   <button class="tab active" onclick="switchTab('today')">Heute</button>
-  <button class="tab" onclick="switchTab('week')">7 Tage</button>
+  <button class="tab" onclick="switchTab('week')">Rückblick</button>
   <button class="tab" onclick="switchTab('foods')">Lebensmittel</button>
 </div>
 
@@ -778,13 +778,22 @@ Antworte NUR mit einem JSON-Objekt ohne Backticks:
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
     });
+    if (!res.ok) throw new Error(`Gemini HTTP ${res.status}`);
     const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
     const raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    const parsed = JSON.parse(raw.replace(/```json|```/g, '').trim());
+    if (!raw) throw new Error('Leere Antwort von Gemini');
+    // Extract JSON even if wrapped in markdown or has extra text
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('Kein JSON in Antwort');
+    const parsed = JSON.parse(jsonMatch[0]);
+    // Validate required fields
+    if (typeof parsed.kcal !== 'number') throw new Error('Ungültige Nährwerte');
     pendingEntry = parsed; pendingIsNewFood = parsed.is_new_food;
     showPreview(parsed);
   } catch(e) {
-    showToast('Fehler beim Parsen. Bitte nochmal versuchen.', 'err'); console.error(e);
+    console.error('Gemini Fehler:', e);
+    showToast(`Fehler: ${e.message || 'Bitte nochmal versuchen.'}`, 'err');
   } finally {
     btn.disabled = false; btn.textContent = 'Einloggen';
   }
@@ -986,44 +995,62 @@ function renderWeekTable(days, byDay, tdeeByDay, exDates) {
 }
 
 function renderWeekTableGrouped(weeks) {
+  // Per week: kcal/protein/carbs/sugar/tdee = Ø pro Tag, deficit = Wochensumme
+  // Footer: Ø der Wochendurchschnitte für alles, Gesamtsumme für Defizit
   let nW = 0, totals = { kcal: 0, protein: 0, carbs: 0, sugar: 0, tdee: 0, deficit: 0 };
+  let nWdeficit = 0;
+
   document.getElementById('weekBody').innerHTML = weeks.map(w => {
     const hasFood = w.nFood > 0;
     const hasTdee = w.nTdee > 0;
-    const avgKcal = hasFood ? Math.round(w.kcal / w.nFood) : null;
-    const def = hasTdee && hasFood ? w.deficit : null;
-    const defCls = def === null ? '' : def >= 0 ? 'deficit-cell' : 'surplus-cell';
-    const defHtml = def === null ? '—' : (def >= 0 ? '−' : '+') + Math.abs(Math.round(def));
+    const hasBoth = hasFood && hasTdee;
+    // Ø pro Tag
+    const avgKcal    = hasFood ? Math.round(w.kcal / w.nFood) : null;
+    const avgProtein = hasFood ? (w.protein / w.nFood).toFixed(1) : null;
+    const avgCarbs   = hasFood ? (w.carbs / w.nFood).toFixed(1) : null;
+    const avgSugar   = hasFood ? (w.sugar / w.nFood).toFixed(1) : null;
+    const avgTdee    = hasTdee ? Math.round(w.tdee / w.nTdee) : null;
+    // Wochensumme Defizit
+    const weekDef    = hasBoth ? w.deficit : null;
+    const defCls     = weekDef === null ? '' : weekDef >= 0 ? 'deficit-cell' : 'surplus-cell';
+    const defHtml    = weekDef === null ? '—' : (weekDef >= 0 ? '−' : '+') + Math.abs(Math.round(weekDef));
+
     if (hasFood) {
       nW++;
-      totals.kcal += w.kcal / w.nFood;
+      totals.kcal    += w.kcal / w.nFood;
       totals.protein += w.protein / w.nFood;
-      totals.carbs += w.carbs / w.nFood;
-      totals.sugar += w.sugar / w.nFood;
+      totals.carbs   += w.carbs / w.nFood;
+      totals.sugar   += w.sugar / w.nFood;
     }
     if (hasTdee) totals.tdee += w.tdee / w.nTdee;
-    if (def !== null) totals.deficit += def;
+    if (weekDef !== null) { totals.deficit += weekDef; nWdeficit++; }
+
     const exBadge = w.hasException ? ' ✦' : '';
+    // Week label: "23.3. – 29.3."
+    const lastDay = w.days[w.days.length - 1];
+    const d0 = formatDateShort(w.days[0]).split(', '); const d1 = formatDateShort(lastDay).split(', ');
+    const weekLabel = `${d0[1] || d0[0]} – ${d1[1] || d1[0]}`;
     return `<tr>
-      <td>${w.label}${exBadge}</td>
+      <td>${weekLabel}${exBadge}</td>
       <td>${avgKcal !== null ? avgKcal : '—'}</td>
-      <td>${hasFood ? (w.protein / w.nFood).toFixed(1) : '—'}</td>
-      <td>${hasFood ? (w.carbs / w.nFood).toFixed(1) : '—'}</td>
-      <td>${hasFood ? (w.sugar / w.nFood).toFixed(1) : '—'}</td>
-      <td>${hasTdee ? Math.round(w.tdee / w.nTdee) : '—'}</td>
+      <td>${avgProtein !== null ? avgProtein : '—'}</td>
+      <td>${avgCarbs !== null ? avgCarbs : '—'}</td>
+      <td>${avgSugar !== null ? avgSugar : '—'}</td>
+      <td>${avgTdee !== null ? avgTdee : '—'}</td>
       <td class="${defCls}">${defHtml}</td>
     </tr>`;
   }).join('');
 
-  document.getElementById('avgKcal').textContent = nW > 0 ? Math.round(totals.kcal / nW) : '—';
+  // Footer: Ø für alles außer Defizit = Gesamtsumme
+  document.getElementById('avgKcal').textContent    = nW > 0 ? Math.round(totals.kcal / nW) : '—';
   document.getElementById('avgProtein').textContent = nW > 0 ? (totals.protein / nW).toFixed(1) : '—';
-  document.getElementById('avgCarbs').textContent = nW > 0 ? (totals.carbs / nW).toFixed(1) : '—';
-  document.getElementById('avgSugar').textContent = nW > 0 ? (totals.sugar / nW).toFixed(1) : '—';
-  document.getElementById('avgTdee').textContent = nW > 0 ? Math.round(totals.tdee / nW) : '—';
+  document.getElementById('avgCarbs').textContent   = nW > 0 ? (totals.carbs / nW).toFixed(1) : '—';
+  document.getElementById('avgSugar').textContent   = nW > 0 ? (totals.sugar / nW).toFixed(1) : '—';
+  document.getElementById('avgTdee').textContent    = nW > 0 ? Math.round(totals.tdee / nW) : '—';
   const td = totals.deficit;
   const defEl = document.getElementById('totalDeficit');
-  defEl.textContent = nW > 0 ? (td >= 0 ? '−' : '+') + Math.abs(Math.round(td)) + ' Σ' : '—';
-  defEl.className = nW > 0 ? (td >= 0 ? 'deficit-cell' : 'surplus-cell') : '';
+  defEl.textContent = nWdeficit > 0 ? (td >= 0 ? '−' : '+') + Math.abs(Math.round(td)) + ' Σ' : '—';
+  defEl.className   = nWdeficit > 0 ? (td >= 0 ? 'deficit-cell' : 'surplus-cell') : '';
 }
 
 function renderBarChartGrouped(weeks) {
