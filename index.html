@@ -774,7 +774,7 @@ Aufgabe:
 Antworte NUR mit einem JSON-Objekt ohne Backticks:
 {"food_name":"Kurze Beschreibung","amount_g":Gesamtgewicht oder null,"kcal":Zahl,"carbs":Zahl,"protein":Zahl,"sugar":Zahl,"is_new_food":true/false,"matched_food_name":"Name oder null"}`;
 
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`, {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_KEY}`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
     });
