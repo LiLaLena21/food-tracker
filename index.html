@@ -748,12 +748,49 @@ async function toggleException() {
 }
 
 // GEMINI
+// Try to match input locally against foods DB before calling Gemini
+function tryLocalMatch(input) {
+  // Parse amount from input, e.g. "450ml", "200g", "3 Eier", "1 Scoop"
+  const amountMatch = input.match(/([\d.,]+)\s*(g|ml|stück|stk|scoop|scoops|ei|eier)?/i);
+  const amount = amountMatch ? parseFloat(amountMatch[1].replace(',', '.')) : null;
+
+  // Try to find a matching food by name (fuzzy: check if food name appears in input)
+  const inputLower = input.toLowerCase();
+  const matches = allFoods.filter(f => inputLower.includes(f.name.toLowerCase()));
+
+  if (matches.length === 1 && amount !== null) {
+    const food = matches[0];
+    const factor = amount / food.default_amount_g;
+    return {
+      food_name: `${food.name} (${amount}${food.default_amount_g === 60 ? 'g' : 'g'})`,
+      amount_g: amount,
+      kcal: Math.round(food.kcal * factor * 10) / 10,
+      carbs: Math.round(food.carbs * factor * 10) / 10,
+      protein: Math.round(food.protein * factor * 10) / 10,
+      sugar: Math.round(food.sugar * factor * 10) / 10,
+      is_new_food: false,
+      matched_food_name: food.name,
+      _localMatch: true
+    };
+  }
+  return null;
+}
+
 async function parseFood() {
   const input = document.getElementById('foodInput').value.trim();
   if (!input) return;
   const btn = document.getElementById('logBtn');
   btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
   try {
+    // 1. Try local match first — no API call needed
+    const local = tryLocalMatch(input);
+    if (local) {
+      pendingEntry = local; pendingIsNewFood = false;
+      showPreview(local);
+      return;
+    }
+
+    // 2. Fall back to Gemini for unknown foods or complex inputs
     const foodsCtx = allFoods.length
       ? 'Bekannte Lebensmittel (Makros pro 100g):\n' + allFoods.map(f =>
           `- ${f.name}: ${f.kcal} kcal, ${f.carbs}g KH, ${f.protein}g Eiweiß, ${f.sugar}g Zucker (Standard: ${f.default_amount_g}g)`).join('\n')
@@ -774,7 +811,7 @@ Aufgabe:
 Antworte NUR mit einem JSON-Objekt ohne Backticks:
 {"food_name":"Kurze Beschreibung","amount_g":Gesamtgewicht oder null,"kcal":Zahl,"carbs":Zahl,"protein":Zahl,"sugar":Zahl,"is_new_food":true/false,"matched_food_name":"Name oder null"}`;
 
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite-preview-06-17:generateContent?key=${GEMINI_KEY}`, {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
     });
@@ -783,11 +820,9 @@ Antworte NUR mit einem JSON-Objekt ohne Backticks:
     if (data.error) throw new Error(data.error.message);
     const raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
     if (!raw) throw new Error('Leere Antwort von Gemini');
-    // Extract JSON even if wrapped in markdown or has extra text
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
     if (!jsonMatch) throw new Error('Kein JSON in Antwort');
     const parsed = JSON.parse(jsonMatch[0]);
-    // Validate required fields
     if (typeof parsed.kcal !== 'number') throw new Error('Ungültige Nährwerte');
     pendingEntry = parsed; pendingIsNewFood = parsed.is_new_food;
     showPreview(parsed);
