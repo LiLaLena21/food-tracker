@@ -751,18 +751,30 @@ async function toggleException() {
 // Try to match input locally against foods DB before calling Gemini
 function tryLocalMatch(input) {
   // Parse amount from input, e.g. "450ml", "200g", "3 Eier", "1 Scoop"
-  const amountMatch = input.match(/([\d.,]+)\s*(g|ml|stück|stk|scoop|scoops|ei|eier)?/i);
+  const amountMatch = input.match(/([\d.,]+)\s*(g|ml|stück|stk|scoop|scoops)?/i);
   const amount = amountMatch ? parseFloat(amountMatch[1].replace(',', '.')) : null;
 
-  // Try to find a matching food by name (fuzzy: check if food name appears in input)
   const inputLower = input.toLowerCase();
-  const matches = allFoods.filter(f => inputLower.includes(f.name.toLowerCase()));
 
-  if (matches.length === 1 && amount !== null) {
-    const food = matches[0];
+  // Find all foods whose name appears in input as a whole word/phrase
+  // Use space/start/end boundaries to avoid "ei" matching inside "weißkäse"
+  const matches = allFoods
+    .filter(f => {
+      const name = f.name.toLowerCase();
+      // Check: name appears preceded and followed by non-letter or string boundary
+      const idx = inputLower.indexOf(name);
+      if (idx === -1) return false;
+      const before = idx === 0 ? true : !/[a-zäöüß]/.test(inputLower[idx - 1]);
+      const after = (idx + name.length) >= inputLower.length ? true : !/[a-zäöüß]/.test(inputLower[idx + name.length]);
+      return before && after;
+    })
+    .sort((a, b) => b.name.length - a.name.length); // longest match wins
+
+  if (matches.length >= 1 && amount !== null) {
+    const food = matches[0]; // take the most specific match
     const factor = amount / food.default_amount_g;
     return {
-      food_name: `${food.name} (${amount}${food.default_amount_g === 60 ? 'g' : 'g'})`,
+      food_name: `${food.name} (${amount}g)`,
       amount_g: amount,
       kcal: Math.round(food.kcal * factor * 10) / 10,
       carbs: Math.round(food.carbs * factor * 10) / 10,
