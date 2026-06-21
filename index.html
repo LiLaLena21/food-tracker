@@ -997,6 +997,17 @@ async function loadWeekView() {
     const covers = dateOffset(row.date, -1);
     tdeeByDay[covers] = parseFloat(row.tdee);
   });
+  // Today never has an explicit TDEE entry yet (you log it tomorrow morning).
+  // Use the default as a stand-in so today's deficit isn't distorted in the period summary.
+  if (!tdeeByDay[TODAY] && defaultTdee) {
+    tdeeByDay[TODAY] = defaultTdee;
+  }
+  // Fallback: for any day in range without an explicit TDEE entry, use the default
+  if (defaultTdee) {
+    days.forEach(d => {
+      if (!tdeeByDay[d]) tdeeByDay[d] = defaultTdee;
+    });
+  }
 
   const byDay = {};
   days.forEach(d => { byDay[d] = { kcal: 0, carbs: 0, protein: 0, sugar: 0, hasData: false }; });
