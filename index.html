@@ -708,8 +708,9 @@ function renderTotals() {
 }
 function renderDeficitBanner(eaten) {
   const banner = document.getElementById('deficitBanner');
-  // Use explicit today value if set, otherwise fall back to default
-  const effectiveTdee = todayTdee || defaultTdee;
+  // The "Verbrauch gestern" value covers yesterday's burn, not today's.
+  // For today's deficit we always use the default (typical) TDEE.
+  const effectiveTdee = defaultTdee;
   if (!effectiveTdee) { banner.classList.remove('visible'); return; }
   const deficit = effectiveTdee - eaten;
   const isGood = deficit >= 0;
@@ -717,8 +718,7 @@ function renderDeficitBanner(eaten) {
   banner.classList.toggle('good', isGood);
   banner.classList.toggle('bad', !isGood);
   document.getElementById('deficitLabel').textContent = isGood ? 'Defizit heute' : 'Überschuss heute';
-  const sourceLabel = todayTdee ? 'Verbrauch gestern' : 'Standard-Verbrauch';
-  document.getElementById('deficitSub').textContent = `${Math.round(eaten)} gegessen · ${Math.round(effectiveTdee)} ${sourceLabel}`;
+  document.getElementById('deficitSub').textContent = `${Math.round(eaten)} gegessen · ${Math.round(effectiveTdee)} Standard-Verbrauch`;
   document.getElementById('deficitValue').textContent = (isGood ? '−' : '+') + Math.abs(Math.round(deficit)) + ' kcal';
 }
 async function deleteEntry(id) {
