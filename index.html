@@ -463,6 +463,7 @@
     <span class="tdee-unit">kcal</span>
     <button class="btn-tdee" onclick="saveTdee()">Speichern</button>
   </div>
+  <div class="tdee-default-hint" id="tdeeDefaultHint" style="display:none"></div>
 
   <div class="deficit-banner" id="deficitBanner">
     <div class="deficit-info">
@@ -552,6 +553,18 @@
 
 <!-- FOODS -->
 <div class="section" id="tab-foods">
+  <div class="entries-label">Einstellungen</div>
+  <div class="add-food-form" style="margin-bottom:24px">
+    <div class="form-title">Standard-Verbrauch</div>
+    <div style="font-size:12px;color:var(--text-dim);margin-bottom:12px;line-height:1.5">
+      Wird automatisch fürs Defizit heute genutzt, solange du noch keinen genauen Wert eingetragen hast.
+    </div>
+    <div class="form-row">
+      <div class="form-field narrow"><label>kcal / Tag</label><input type="number" id="fDefaultTdee" placeholder="1800"></div>
+      <button class="btn-add-food" style="width:auto;align-self:flex-end;margin-top:0" onclick="saveDefaultTdee()">Speichern</button>
+    </div>
+  </div>
+
   <div class="entries-label">Stammessen</div>
   <div class="food-list" id="foodList"><div class="empty-state">Keine Lebensmittel gespeichert.</div></div>
   <hr class="divider">
@@ -611,10 +624,11 @@ async function sbFetch(path, method = 'GET', body = null, extra = {}) {
 
 const TODAY = new Date().toISOString().slice(0, 10);
 let todayEntries = [], allFoods = [], isException = false;
-let pendingEntry = null, pendingIsNewFood = false, todayTdee = null;
+let pendingEntry = null, pendingIsNewFood = false, todayTdee = null, defaultTdee = null, tdeeIsExplicit = false;
 
 async function init() {
   document.getElementById('headerDate').textContent = formatDateFull(TODAY);
+  loadDefaultTdee();
   await Promise.all([loadFoods(), loadTodayEntries(), checkExceptionDay(), loadTodayTdee()]);
   renderEntries(); renderTotals();
 }
@@ -694,14 +708,17 @@ function renderTotals() {
 }
 function renderDeficitBanner(eaten) {
   const banner = document.getElementById('deficitBanner');
-  if (!todayTdee) { banner.classList.remove('visible'); return; }
-  const deficit = todayTdee - eaten;
+  // Use explicit today value if set, otherwise fall back to default
+  const effectiveTdee = todayTdee || defaultTdee;
+  if (!effectiveTdee) { banner.classList.remove('visible'); return; }
+  const deficit = effectiveTdee - eaten;
   const isGood = deficit >= 0;
   banner.classList.add('visible');
   banner.classList.toggle('good', isGood);
   banner.classList.toggle('bad', !isGood);
   document.getElementById('deficitLabel').textContent = isGood ? 'Defizit heute' : 'Überschuss heute';
-  document.getElementById('deficitSub').textContent = `${Math.round(eaten)} gegessen · ${Math.round(todayTdee)} Verbrauch gestern`;
+  const sourceLabel = todayTdee ? 'Verbrauch gestern' : 'Standard-Verbrauch';
+  document.getElementById('deficitSub').textContent = `${Math.round(eaten)} gegessen · ${Math.round(effectiveTdee)} ${sourceLabel}`;
   document.getElementById('deficitValue').textContent = (isGood ? '−' : '+') + Math.abs(Math.round(deficit)) + ' kcal';
 }
 async function deleteEntry(id) {
@@ -716,7 +733,12 @@ async function deleteEntry(id) {
 async function loadTodayTdee() {
   const result = await sbFetch(`tdee_entries?date=eq.${TODAY}`) || [];
   todayTdee = result.length ? parseFloat(result[0].tdee) : null;
-  if (todayTdee) document.getElementById('tdeeInput').value = Math.round(todayTdee);
+  if (todayTdee) {
+    document.getElementById('tdeeInput').value = Math.round(todayTdee);
+  } else if (defaultTdee) {
+    document.getElementById('tdeeInput').value = Math.round(defaultTdee);
+    document.getElementById('tdeeInput').placeholder = `${Math.round(defaultTdee)} (Standard)`;
+  }
 }
 async function saveTdee() {
   const val = parseFloat(document.getElementById('tdeeInput').value);
@@ -726,6 +748,27 @@ async function saveTdee() {
   todayTdee = val;
   renderTotals();
   showToast('Verbrauch gespeichert.', 'ok');
+}
+
+// DEFAULT TDEE (used as fallback for today's deficit when no explicit value is set yet)
+function loadDefaultTdee() {
+  const stored = localStorage.getItem('default_tdee');
+  defaultTdee = stored ? parseFloat(stored) : null;
+  if (defaultTdee) {
+    const field = document.getElementById('fDefaultTdee');
+    if (field) field.value = Math.round(defaultTdee);
+  }
+}
+function saveDefaultTdee() {
+  const val = parseFloat(document.getElementById('fDefaultTdee').value);
+  if (!val || val < 500) { showToast('Bitte einen gültigen Standard-Verbrauch eingeben.', 'err'); return; }
+  localStorage.setItem('default_tdee', val);
+  defaultTdee = val;
+  if (!todayTdee) {
+    document.getElementById('tdeeInput').placeholder = `${Math.round(val)} (Standard)`;
+  }
+  renderTotals();
+  showToast('Standard-Verbrauch gespeichert.', 'ok');
 }
 
 // EXCEPTION
