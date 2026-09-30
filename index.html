@@ -3,11 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- Eigenes dunkles Design: verhindert, dass der automatische Dunkelmodus des Browsers Farben umrechnet -->
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#1a1612">
 <title>Kalorien</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
   :root {
+    color-scheme: dark;
     --bg: #1a1612;
     --surface: #242018;
     --surface2: #2c2820;
@@ -836,7 +840,10 @@ function applyTheme() {
   r.setProperty('--border', th.border); r.setProperty('--text', th.text); r.setProperty('--text-dim', th.muted);
   r.setProperty('--accent', acc); r.setProperty('--on-accent', key === 'hell' ? '#ffffff' : th.bg);
   r.setProperty('--shadow', key === 'hell' ? '0 10px 28px rgba(80,60,40,0.10)' : '0 12px 32px rgba(0,0,0,0.28)');
-  document.documentElement.style.colorScheme = key === 'hell' ? 'light' : 'dark';
+  const scheme = key === 'hell' ? 'only light' : 'dark';
+  document.documentElement.style.colorScheme = scheme;
+  const csMeta = document.querySelector('meta[name=color-scheme]'); if (csMeta) csMeta.content = scheme;
+  const tcMeta = document.querySelector('meta[name=theme-color]'); if (tcMeta) tcMeta.content = th.bg;
 }
 applyTheme();
 function setTheme(k) { lsSet('wt_theme', k); applyTheme(); renderLookMenu(); renderTotals && renderTotals(); }
