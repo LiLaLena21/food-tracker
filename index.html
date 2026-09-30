@@ -468,6 +468,115 @@
   }
   .btn-scan:disabled { opacity: 0.5; cursor: wait; }
   .form-hint { font-size: 11px; color: var(--text-dim); margin: -4px 0 10px; }
+
+  /* ═══ Design: passend zum Gewichtstracker, Farben über Themen ═══ */
+  :root {
+    --accent-dim: color-mix(in srgb, var(--accent) 62%, var(--bg));
+    --accent-faint: color-mix(in srgb, var(--accent) 14%, var(--bg));
+    --text-mid: color-mix(in srgb, var(--text) 60%, var(--text-dim));
+    --red-faint: color-mix(in srgb, var(--red) 14%, var(--bg));
+    --green-faint: color-mix(in srgb, var(--green) 14%, var(--bg));
+    --glass: color-mix(in srgb, var(--bg) 62%, transparent);
+    --accent-hi: color-mix(in srgb, var(--accent) 80%, white);
+    --accent-lo: color-mix(in srgb, var(--accent) 88%, black);
+    --on-accent: var(--bg);
+    --radius: 20px; --shadow: 0 12px 32px rgba(0,0,0,0.28);
+  }
+  body {
+    background:
+      radial-gradient(900px 520px at 110% -10%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 60%),
+      radial-gradient(700px 520px at -20% 105%, color-mix(in srgb, var(--green) 7%, transparent), transparent 60%),
+      var(--bg);
+    background-attachment: fixed; padding: 0 16px 100px;
+  }
+  .header { border-bottom: none; padding: 26px 4px 14px; flex-wrap: wrap; gap: 10px; position: relative; }
+  .header-title { font-size: 2rem; font-weight: 600; color: var(--text); flex: 1; }
+  .menu-btn { order: 2; width: 2.4rem; height: 2.4rem; border-radius: 14px; background: var(--glass); border: 1px solid var(--border); color: var(--text); font-size: 1.15rem; cursor: pointer; }
+  .day-nav { order: 3; width: 100%; }
+  .day-nav .header-date { border-radius: 999px; padding: 6px 14px; background: var(--glass); }
+  .tabs {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin: 4px 0 18px; padding: 4px;
+    border: 1px solid var(--border); border-radius: 999px; background: var(--glass);
+  }
+  .tab { border: none !important; border-radius: 999px; margin: 0; padding: 9px 4px; font-size: 13px; }
+  .tab.active { background: linear-gradient(135deg, var(--accent-hi), var(--accent-lo)); color: var(--on-accent); font-weight: 600; box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 30%, transparent); }
+  .section { padding: 0 !important; }
+  .win-stack { display: flex; flex-direction: column; }
+  .win {
+    border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid var(--border); padding: 16px; margin-bottom: 16px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.025), rgba(255,255,255,0) 40%), var(--surface);
+  }
+  .win-title, .win .input-label, .win .entries-label { font-family: 'Lora', serif; font-size: 17px; font-weight: 600; color: var(--text); text-transform: none; letter-spacing: 0; margin: 0 0 12px; }
+  .hero-win {
+    background:
+      radial-gradient(120% 90% at 100% 0%, color-mix(in srgb, var(--accent) 22%, transparent) 0%, transparent 55%),
+      radial-gradient(90% 80% at 0% 100%, color-mix(in srgb, var(--green) 14%, transparent) 0%, transparent 60%),
+      var(--surface);
+  }
+  .hero-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 14px; }
+  .hero-label { font-size: 12px; color: var(--text-dim); letter-spacing: 0.04em; }
+  .hero-kcal { font-family: 'Lora', serif; font-size: 2.8rem; font-weight: 600; line-height: 1.05; margin-top: 2px; }
+  .hero-kcal small { font-size: 1rem; font-weight: 400; color: var(--text-dim); margin-left: 5px; }
+  .hero-sub { font-size: 12px; color: var(--text-dim); margin-top: 3px; }
+  .hero-ring { width: 100px; height: 100px; position: relative; flex-shrink: 0; }
+  .hero-ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .hero-ring .ring-txt { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+  .hero-ring .ring-pct { font-family: 'Lora', serif; font-size: 1.25rem; font-weight: 600; line-height: 1; }
+  .hero-ring .ring-sub { font-size: 10px; color: var(--text-dim); margin-top: 3px; }
+  .hero-win .deficit-banner { display: none !important; }   /* steckt schon in der Zeile unter der Zahl */
+  .hero-win .totals-grid { margin: 0; gap: 8px; }
+  .hero-win .total-card { background: var(--glass); border-radius: 12px; padding: 10px 6px; }
+  .hero-win .total-card.kcal-card { display: none; }
+  .hero-win .totals-grid { grid-template-columns: repeat(3, 1fr); }
+  .win .input-area, .win .exception-bar, .win .tdee-bar { margin: 0; padding: 0; background: none; border: none; }
+  .win .tdee-bar { margin-top: 10px; }
+  .win .exception-bar, .win .tdee-bar { background: var(--glass); border: 1px solid var(--border); border-radius: 14px; padding: 10px 12px; }
+  .win .entry-item { background: var(--glass); border-radius: 12px; }
+  .food-input, .tdee-input, .win input[type=number], .win input[type=text], .add-food-form input { border-radius: 12px !important; background: var(--glass) !important; }
+  .btn-log, .btn-confirm, .btn-add-food, .btn-setup {
+    border-radius: 12px !important; background: linear-gradient(135deg, var(--accent-hi), var(--accent-lo)) !important; color: var(--on-accent) !important;
+    font-weight: 600 !important; box-shadow: 0 6px 16px color-mix(in srgb, var(--accent) 28%, transparent);
+  }
+  .btn-scan, .btn-tdee, .btn-cancel { border-radius: 12px !important; }
+  .add-food-form, .food-list .food-item, .stat-card, .period-btn { border-radius: 14px !important; }
+  .period-btn.active { background: linear-gradient(135deg, var(--accent-hi), var(--accent-lo)) !important; color: var(--on-accent) !important; border-color: transparent !important; }
+  .bar { background: color-mix(in srgb, var(--accent) 45%, var(--surface2)); border-radius: 6px 6px 2px 2px; }
+  .bar.today { background: var(--accent); }
+  .bar.exception { background: color-mix(in srgb, var(--red) 60%, var(--surface2)); }
+  /* Menü */
+  .menu-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); opacity: 0; pointer-events: none; transition: opacity 0.2s; z-index: 50; }
+  .menu-backdrop.open { opacity: 1; pointer-events: auto; }
+  .menu-panel { position: fixed; top: 0; right: 0; bottom: 0; width: min(320px, 86vw); z-index: 51; padding: 18px 16px; overflow-y: auto;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 8%, transparent), transparent 30%), var(--surface); border-left: 1px solid var(--border);
+    transform: translateX(100%); transition: transform 0.22s ease; }
+  .menu-panel.open { transform: none; }
+  .menu-head { display: flex; justify-content: space-between; align-items: center; font-family: 'Lora', serif; font-size: 1.15rem; margin-bottom: 1.2rem; }
+  .menu-close { background: none; border: none; color: var(--text-dim); font-size: 1.1rem; cursor: pointer; }
+  .menu-section { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.06em; margin: 0.4rem 0 0.5rem; }
+  .menu-foot { font-size: 11px; color: var(--text-dim); }
+  .theme-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+  .theme-sw { border: 2px solid var(--border); border-radius: 12px; padding: 7px 5px 5px; cursor: pointer; text-align: center; font-size: 11px; color: var(--text-dim); background: var(--glass); font-family: inherit; }
+  .theme-sw.on { border-color: var(--accent); color: var(--text); }
+  .theme-sw .sw { height: 26px; border-radius: 8px; margin-bottom: 5px; display: flex; align-items: flex-end; justify-content: flex-end; padding: 4px; }
+  .theme-sw .sw i { width: 12px; height: 12px; border-radius: 50%; }
+  .accent-row { display: flex; align-items: center; gap: 10px; font-size: 14px; margin-bottom: 1.2rem; }
+  .accent-row a { color: var(--text-dim); font-size: 12px; }
+  .accent-row input[type=color] { width: 42px; height: 32px; border: 1px solid var(--border); border-radius: 8px; background: none; padding: 2px; cursor: pointer; }
+  .layout-row { display: flex; align-items: center; gap: 6px; background: var(--glass); border: 1px solid var(--border); border-radius: 12px; padding: 7px 10px; margin-bottom: 6px; font-size: 14px; }
+  .layout-row .nm { flex: 1; } .layout-row.off .nm { color: var(--text-dim); text-decoration: line-through; }
+  .layout-row button { background: none; border: 1px solid var(--border); color: var(--text); border-radius: 8px; width: 30px; height: 28px; cursor: pointer; font-family: inherit; }
+  .toast { opacity: 0; transition: transform 0.3s ease, opacity 0.3s ease; } .toast.show { opacity: 1; }
+  #tab-foods > .entries-label:first-child { display: none; }
+  .add-food-form { border-radius: var(--radius) !important; box-shadow: var(--shadow); border: 1px solid var(--border) !important; padding: 16px !important;
+    background: linear-gradient(180deg, rgba(255,255,255,0.025), rgba(255,255,255,0) 40%), var(--surface) !important; margin-bottom: 16px !important; }
+  .form-title { font-family: 'Lora', serif; font-size: 17px !important; font-weight: 600; color: var(--text) !important; text-transform: none !important; letter-spacing: 0 !important; }
+  .food-list .food-item { background: var(--glass) !important; }
+  .win .food-list { margin-bottom: 0; }
+  .win .entry-list { margin-bottom: 0; }
+  .chart-label { font-family: 'Lora', serif; font-size: 17px; font-weight: 600; color: var(--text); text-transform: none; letter-spacing: 0; margin-bottom: 14px; }
+  .week-summary-cards .stat-card, .week-summary-cards > div { border-radius: 14px; }
+  .week-table td:first-child, .week-table th:first-child { white-space: nowrap; }
+  .layout-row button.vis { width: 42px; font-size: 12px; } .layout-row button:disabled { opacity: 0.3; }
 </style>
 </head>
 <body>
@@ -486,6 +595,7 @@
 
 <div class="header">
   <span class="header-title">Kalorien</span>
+  <button class="menu-btn" onclick="openMenu()" aria-label="Menü">☰</button>
   <div class="day-nav">
     <button class="day-reset" id="dayReset" onclick="setDay(TODAY)">Heute</button>
     <span class="header-date" id="headerDateWrap"><span id="headerDate"></span> ▾<input type="date" id="dayPicker" onchange="setDay(this.value)"></span>
@@ -500,20 +610,16 @@
 
 <!-- TODAY -->
 <div class="section active" id="tab-today">
-
-  <div class="exception-bar" id="exceptionBar">
-    <span class="exception-label" id="exceptionLabel">Ausnahmetag</span>
-    <button class="toggle" id="exceptionToggle" onclick="toggleException()"></button>
-  </div>
-
-  <div class="tdee-bar">
-    <span class="tdee-label" id="tdeeLabel">Verbrauch gestern</span>
-    <input type="number" class="tdee-input" id="tdeeInput" placeholder="1800" min="500" max="5000">
-    <span class="tdee-unit">kcal</span>
-    <button class="btn-tdee" onclick="saveTdee()">Speichern</button>
-  </div>
-  <div class="tdee-default-hint" id="tdeeDefaultHint" style="display:none"></div>
-
+<div class="win-stack">
+  <div class="win hero-win" data-win="overview">
+    <div class="hero-top">
+      <div>
+        <div class="hero-label" id="heroLabel">Gegessen heute</div>
+        <div class="hero-kcal"><span id="heroKcal">0</span><small>kcal</small></div>
+        <div class="hero-sub" id="heroSub"></div>
+      </div>
+      <div class="hero-ring" id="heroRing"></div>
+    </div>
   <div class="deficit-banner" id="deficitBanner">
     <div class="deficit-info">
       <div class="deficit-label" id="deficitLabel">Defizit heute</div>
@@ -522,6 +628,15 @@
     <div class="deficit-value" id="deficitValue"></div>
   </div>
 
+  <div class="totals-grid">
+    <div class="total-card kcal-card"><div class="total-value" id="totalKcal">0</div><div class="total-unit">kcal</div></div>
+    <div class="total-card"><div class="total-value" id="totalProtein">0</div><div class="total-unit">Eiweiß g</div></div>
+    <div class="total-card"><div class="total-value" id="totalCarbs">0</div><div class="total-unit">KH g</div></div>
+    <div class="total-card"><div class="total-value" id="totalSugar">0</div><div class="total-unit">Zucker g</div></div>
+  </div>
+  </div>
+
+  <div class="win" data-win="input">
   <div class="input-area">
     <div class="input-label">Was hast du gegessen?</div>
     <div class="input-row">
@@ -553,15 +668,31 @@
     </div>
   </div>
 
+  </div>
+
+  <div class="win" data-win="entries">
   <div class="entries-label" id="entriesLabel">Heute</div>
   <div class="entry-list" id="entryList"><div class="empty-state">Noch nichts eingetragen.</div></div>
 
-  <div class="totals-grid">
-    <div class="total-card kcal-card"><div class="total-value" id="totalKcal">0</div><div class="total-unit">kcal</div></div>
-    <div class="total-card"><div class="total-value" id="totalProtein">0</div><div class="total-unit">Eiweiß g</div></div>
-    <div class="total-card"><div class="total-value" id="totalCarbs">0</div><div class="total-unit">KH g</div></div>
-    <div class="total-card"><div class="total-value" id="totalSugar">0</div><div class="total-unit">Zucker g</div></div>
   </div>
+
+  <div class="win" data-win="daysettings">
+    <div class="win-title">Tag</div>
+  <div class="exception-bar" id="exceptionBar">
+    <span class="exception-label" id="exceptionLabel">Ausnahmetag</span>
+    <button class="toggle" id="exceptionToggle" onclick="toggleException()"></button>
+  </div>
+
+  <div class="tdee-bar">
+    <span class="tdee-label" id="tdeeLabel">Verbrauch gestern</span>
+    <input type="number" class="tdee-input" id="tdeeInput" placeholder="1800" min="500" max="5000">
+    <span class="tdee-unit">kcal</span>
+    <button class="btn-tdee" onclick="saveTdee()">Speichern</button>
+  </div>
+  <div class="tdee-default-hint" id="tdeeDefaultHint" style="display:none"></div>
+
+  </div>
+</div>
 </div>
 
 <!-- WEEK -->
@@ -574,8 +705,10 @@
     <button class="period-btn" onclick="setPeriod(180, this)">6 M</button>
   </div>
   <div class="week-summary-cards" id="weekSummaryCards"></div>
+  <div class="win">
   <div class="chart-label" id="chartLabel">kcal – letzte 7 Tage</div>
   <div class="bar-chart" id="barChart"></div>
+  <div style="overflow-x:auto">
   <table class="week-table">
     <thead>
       <tr>
@@ -601,6 +734,8 @@
       </tr>
     </tfoot>
   </table>
+  </div>
+  </div>
 </div>
 
 <!-- FOODS -->
@@ -617,9 +752,10 @@
     </div>
   </div>
 
+  <div class="win">
   <div class="entries-label">Stammessen</div>
   <div class="food-list" id="foodList"><div class="empty-state">Keine Lebensmittel gespeichert.</div></div>
-  <hr class="divider">
+  </div>
   <div class="add-food-form">
     <div class="form-title">Neues Lebensmittel</div>
     <div style="display:flex;gap:8px">
@@ -682,6 +818,55 @@ async function sbFetch(path, method = 'GET', body = null, extra = {}) {
   return text ? JSON.parse(text) : null;
 }
 
+// ── Aussehen: gleiche Themen und Einstellungen wie im Gewichtstracker (gleiche Domain, gleicher Speicher) ──
+const THEMES = {
+  warm:     { name: 'Warm',     bg: '#1a1612', card: '#242018', card2: '#2c2820', border: '#3a342c', text: '#f0ead8', muted: '#8a7a6a', accent: '#e8835a' },
+  ozean:    { name: 'Ozean',    bg: '#0e161e', card: '#15212c', card2: '#1b2936', border: '#2a3b4b', text: '#e5eef6', muted: '#7d93a7', accent: '#4fb3d9' },
+  wald:     { name: 'Wald',     bg: '#111813', card: '#18231c', card2: '#1e2c23', border: '#2d3f32', text: '#e7efe5', muted: '#839583', accent: '#7cc47f' },
+  beere:    { name: 'Beere',    bg: '#191118', card: '#231822', card2: '#2c1e2a', border: '#3e2b3b', text: '#f3e6ef', muted: '#9a8295', accent: '#e0689a' },
+  lavendel: { name: 'Lavendel', bg: '#15131c', card: '#1e1b28', card2: '#252132', border: '#363046', text: '#ece8f5', muted: '#8e87a3', accent: '#a78bfa' },
+  hell:     { name: 'Hell',     bg: '#f4efe8', card: '#fffdf9', card2: '#f6f0e8', border: '#e3d9cc', text: '#2b241d', muted: '#8a7b6b', accent: '#dd6f40' },
+};
+function lsGet(k) { try { return localStorage.getItem(k); } catch(e) { return null; } }
+function lsSet(k, v) { try { v === null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch(e) {} }
+function applyTheme() {
+  const key = lsGet('wt_theme') || 'warm', th = THEMES[key] || THEMES.warm, acc = lsGet('wt_accent') || th.accent;
+  const r = document.documentElement.style;
+  r.setProperty('--bg', th.bg); r.setProperty('--surface', th.card); r.setProperty('--surface2', th.card2);
+  r.setProperty('--border', th.border); r.setProperty('--text', th.text); r.setProperty('--text-dim', th.muted);
+  r.setProperty('--accent', acc); r.setProperty('--on-accent', key === 'hell' ? '#ffffff' : th.bg);
+  r.setProperty('--shadow', key === 'hell' ? '0 10px 28px rgba(80,60,40,0.10)' : '0 12px 32px rgba(0,0,0,0.28)');
+  document.documentElement.style.colorScheme = key === 'hell' ? 'light' : 'dark';
+}
+applyTheme();
+function setTheme(k) { lsSet('wt_theme', k); applyTheme(); renderLookMenu(); renderTotals && renderTotals(); }
+function setAccent(hex) { lsSet('wt_accent', hex); applyTheme(); renderLookMenu(); renderTotals && renderTotals(); }
+const WINDOWS = [ { id: 'overview', name: 'Übersicht' }, { id: 'input', name: 'Eintragen' }, { id: 'entries', name: 'Einträge' }, { id: 'daysettings', name: 'Ausnahmetag & Verbrauch' } ];
+function getLayout() {
+  let l = null; try { l = JSON.parse(lsGet('ft_layout') || 'null'); } catch(e) {}
+  const ids = WINDOWS.map(w => w.id); if (!Array.isArray(l)) l = [];
+  l = l.filter(x => ids.includes(x.id)); ids.forEach(id => { if (!l.some(x => x.id === id)) l.push({ id, hidden: false }); });
+  return l;
+}
+function saveLayout(l) { lsSet('ft_layout', JSON.stringify(l)); applyLayout(); renderLookMenu(); }
+function applyLayout() { getLayout().forEach((x, i) => { const el = document.querySelector(`[data-win="${x.id}"]`); if (el) { el.style.order = i; el.style.display = x.hidden ? 'none' : ''; } }); }
+function moveWin(i, d) { const l = getLayout(), j = i + d; if (j < 0 || j >= l.length) return; [l[i], l[j]] = [l[j], l[i]]; saveLayout(l); }
+function toggleWin(i) { const l = getLayout(); l[i].hidden = !l[i].hidden; saveLayout(l); }
+function renderLookMenu() {
+  const grid = document.getElementById('themeGrid'); if (!grid) return;
+  const key = lsGet('wt_theme') || 'warm';
+  grid.innerHTML = Object.entries(THEMES).map(([k, t]) => `<button class="theme-sw${k === key ? ' on' : ''}" onclick="setTheme('${k}')">
+    <div class="sw" style="background:linear-gradient(135deg, ${t.card}, ${t.bg});border:1px solid ${t.border}"><i style="background:${t.accent}"></i></div>${t.name}</button>`).join('');
+  document.getElementById('accentPick').value = lsGet('wt_accent') || (THEMES[key] || THEMES.warm).accent;
+  const l = getLayout();
+  document.getElementById('layoutList').innerHTML = l.map((x, i) => `<div class="layout-row${x.hidden ? ' off' : ''}"><span class="nm">${WINDOWS.find(w => w.id === x.id).name}</span>
+    <button onclick="moveWin(${i},-1)" ${i === 0 ? 'disabled' : ''}>↑</button><button onclick="moveWin(${i},1)" ${i === l.length - 1 ? 'disabled' : ''}>↓</button>
+    <button class="vis" onclick="toggleWin(${i})">${x.hidden ? 'aus' : 'an'}</button></div>`).join('');
+}
+function openMenu() { renderLookMenu(); document.getElementById('menuPanel').classList.add('open'); document.getElementById('menuBackdrop').classList.add('open'); }
+function closeMenu() { document.getElementById('menuPanel').classList.remove('open'); document.getElementById('menuBackdrop').classList.remove('open'); }
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMenu(); });
+
 // Lokales Datum (nicht UTC), sonst landen Einträge zwischen 0 und 2 Uhr beim Vortag
 function localDateStr(d = new Date()) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -713,6 +898,7 @@ async function setDay(d) {
 }
 
 async function init() {
+  applyLayout();
   updateDayHeader();
   loadDefaultTdee();
   await Promise.all([loadFoods(), loadTodayEntries(), checkExceptionDay(), loadTodayTdee()]);
@@ -795,6 +981,24 @@ function renderTotals() {
   document.getElementById('totalProtein').textContent = sum('protein').toFixed(1);
   document.getElementById('totalSugar').textContent = sum('sugar').toFixed(1);
   renderDeficitBanner(eaten);
+  renderHero(eaten);
+}
+// Übersicht: gegessen groß, Ring = Anteil am Standard-Verbrauch
+function renderHero(eaten) {
+  const past = typeof DAY !== 'undefined' && DAY !== TODAY;
+  document.getElementById('heroLabel').textContent = past ? 'Gegessen an dem Tag' : 'Gegessen heute';
+  document.getElementById('heroKcal').textContent = Math.round(eaten).toLocaleString('de-DE');
+  const budget = defaultTdee;
+  const ring = document.getElementById('heroRing');
+  if (!budget) { ring.innerHTML = ''; document.getElementById('heroSub').textContent = 'Standard-Verbrauch unter Lebensmittel eintragen'; return; }
+  const left = budget - eaten;
+  document.getElementById('heroSub').textContent = left >= 0 ? `noch ${Math.round(left).toLocaleString('de-DE')} kcal bis ${Math.round(budget).toLocaleString('de-DE')}` : `${Math.round(-left).toLocaleString('de-DE')} kcal über ${Math.round(budget).toLocaleString('de-DE')}`;
+  const pct = Math.min(100, eaten / budget * 100), r = 42, c = 2 * Math.PI * r;
+  const over = eaten > budget;
+  ring.innerHTML = `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="${r}" fill="none" stroke="var(--border)" stroke-width="9"/>
+    <circle cx="50" cy="50" r="${r}" fill="none" stroke="${over ? 'var(--red)' : 'var(--accent)'}" stroke-width="9" stroke-linecap="round"
+      stroke-dasharray="${c.toFixed(1)}" stroke-dashoffset="${(c * (1 - pct / 100)).toFixed(1)}"/></svg>
+    <div class="ring-txt"><div class="ring-pct">${Math.round(eaten / budget * 100)} %</div><div class="ring-sub">vom Verbrauch</div></div>`;
 }
 function renderDeficitBanner(eaten) {
   const banner = document.getElementById('deficitBanner');
@@ -1481,5 +1685,16 @@ function showToast(msg, type = '') {
   }
 })();
 </script>
+<div class="menu-backdrop" id="menuBackdrop" onclick="closeMenu()"></div>
+<aside class="menu-panel" id="menuPanel" aria-hidden="true">
+  <div class="menu-head"><span>Menü</span><button class="menu-close" onclick="closeMenu()" aria-label="Schließen">✕</button></div>
+  <div class="menu-section">Aussehen</div>
+  <div class="theme-grid" id="themeGrid"></div>
+  <label class="accent-row">Eigene Akzentfarbe <input type="color" id="accentPick" oninput="setAccent(this.value)">
+    <a href="#" onclick="setAccent(null);return false">zurücksetzen</a></label>
+  <div class="menu-foot" style="margin:-0.6rem 0 1.2rem">Gilt auch für den Gewichtstracker auf diesem Gerät.</div>
+  <div class="menu-section">Anordnung „Heute“</div>
+  <div id="layoutList"></div>
+</aside>
 </body>
 </html>
