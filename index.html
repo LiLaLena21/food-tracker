@@ -602,6 +602,10 @@
   .greet-ico svg { width: 26px; height: 26px; overflow: visible; }
   .greet-ico.noon .rays { transform-origin: 16px 16px; animation: greetSpin 24s linear infinite; }
   .greet-ico.morning .rays, .greet-ico.evening .rays { animation: greetPulse 3.5s ease-in-out infinite; }
+  .greet-ico.birthday .flames { animation: greetTwinkle 1.4s ease-in-out infinite; }
+  .bday-note { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0 0 12px; padding: 10px 12px; border-radius: 14px; font-size: 13px;
+    background: color-mix(in srgb, var(--accent) 12%, transparent); border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border)); }
+  .bday-note button { background: none; border: 1px solid var(--accent); color: var(--accent); border-radius: 999px; padding: 5px 12px; font-family: inherit; font-size: 12px; cursor: pointer; white-space: nowrap; }
   .greet-ico.night .stars { animation: greetTwinkle 2.8s ease-in-out infinite; }
   @keyframes greetSpin { to { transform: rotate(360deg); } }
   @keyframes greetPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.45; } }
@@ -653,6 +657,7 @@
       </div>
       <div class="hero-ring" id="heroRing"></div>
     </div>
+    <div class="bday-note" id="bdayNote" style="display:none"><span>🎂 Heute ist dein Geburtstag. Soll der Tag als Ausnahmetag zählen?</span><button onclick="toggleException()">Ja, bitte</button></div>
   <div class="deficit-banner" id="deficitBanner">
     <div class="deficit-info">
       <div class="deficit-label" id="deficitLabel">Defizit heute</div>
@@ -918,6 +923,7 @@ const GREET_ICONS = {
   noon: `<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="16" cy="16" r="5.5"/><g class="rays"><path d="M16 4v3M16 25v3M4 16h3M25 16h3M7.5 7.5l2.1 2.1M22.4 22.4l2.1 2.1M7.5 24.5l2.1-2.1M22.4 9.6l2.1-2.1"/></g></svg>`,
   afternoon: `<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="13" cy="13" r="4.5"/><path d="M13 4v2M4 13h2M6.6 6.6l1.4 1.4M19.4 6.6 18 8" class="rays"/><path d="M11 25h12a4.5 4.5 0 0 0 0-9 6 6 0 0 0-11.3 1.8A3.6 3.6 0 0 0 11 25z" fill="var(--surface)"/></svg>`,
   evening: `<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 21h22"/><path d="M10 21a6 6 0 0 1 12 0"/><path d="M8 25h16M11 28.5h10" opacity=".55"/><path d="M16 4v8M13 9l3 3 3-3"/><path d="M9.5 13.5l1.4 1.4M22.5 13.5l-1.4 1.4" class="rays" opacity=".7"/></svg>`,
+  birthday: `<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 27h20M8 27V17h16v10"/><path d="M8 21c2 1.6 4 1.6 5.3 0 1.4 1.6 4 1.6 5.4 0 1.3 1.6 3.3 1.6 5.3 0"/><path d="M12 17v-4M16 17v-4M20 17v-4"/><path d="M12 10.5c-.9-.8-.9-1.8 0-3 .9 1.2.9 2.2 0 3zM16 10.5c-.9-.8-.9-1.8 0-3 .9 1.2.9 2.2 0 3zM20 10.5c-.9-.8-.9-1.8 0-3 .9 1.2.9 2.2 0 3z" class="flames"/></svg>`,
   night: `<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 21.5A9 9 0 0 1 12.5 7a9 9 0 1 0 12.3 12.3 8.9 8.9 0 0 1-3.8 2.2z"/><path d="M23 6.5v3M21.5 8h3M26.5 13v2M25.5 14h2" class="stars"/></svg>`,
 };
 function greetingNow(d = new Date()) {
@@ -928,6 +934,39 @@ function greetingNow(d = new Date()) {
   if (h >= 18 && h < 22) return { text: 'Guten Abend', icon: 'evening' };
   return { text: 'Gute Nacht', icon: 'night' };
 }
+function wtProfile() {
+  let raw = lsGet('wt_profile');
+  if (!raw) { const m = document.cookie.match('(?:^|; )wt_profile=([^;]*)'); raw = m ? decodeURIComponent(m[1]) : null; }
+  try { return JSON.parse(raw || '{}') || {}; } catch(e) { return {}; }
+}
+function isBirthday(iso) {
+  const b = wtProfile().birthday; if (!b) return false;
+  const [, m, d] = b.split('-').map(Number), [, m2, d2] = iso.split('-').map(Number);
+  return m === m2 && d === d2;
+}
+// Konfetti einmal pro Geburtstag und App
+function birthdayConfetti(app) {
+  const key = `bday_confetti_${app}_${new Date().getFullYear()}`;
+  try { if (localStorage.getItem(key)) return; localStorage.setItem(key, '1'); } catch(e) { return; }
+  if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const c = document.createElement('canvas');
+  c.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:9998';
+  document.body.appendChild(c);
+  const dpr = window.devicePixelRatio || 1, W = innerWidth, H = innerHeight;
+  c.width = W * dpr; c.height = H * dpr; const ctx = c.getContext('2d'); ctx.scale(dpr, dpr);
+  const cols = [getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#e8835a', '#f0c060', '#5ab5a0', '#e05a8a', '#a78bfa', '#4fb3d9'];
+  const ps = Array.from({ length: 140 }, () => ({ x: Math.random() * W, y: -20 - Math.random() * H * 0.6, vx: (Math.random() - 0.5) * 2.2, vy: 2 + Math.random() * 3.2,
+    r: 4 + Math.random() * 5, a: Math.random() * 6.28, va: (Math.random() - 0.5) * 0.25, col: cols[Math.floor(Math.random() * cols.length)] }));
+  const t0 = performance.now();
+  (function frame(t) {
+    const el = t - t0; ctx.clearRect(0, 0, W, H);
+    ps.forEach(p => { p.x += p.vx; p.y += p.vy; p.a += p.va; p.vy += 0.02;
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.a); ctx.globalAlpha = Math.max(0, 1 - Math.max(0, el - 3000) / 1200);
+      ctx.fillStyle = p.col; ctx.fillRect(-p.r / 2, -p.r / 4, p.r, p.r / 2); ctx.restore(); });
+    if (el < 4300) requestAnimationFrame(frame); else c.remove();
+  })(t0);
+}
+
 function profileName() {
   let raw = lsGet('wt_profile');
   if (!raw) { const m = document.cookie.match('(?:^|; )wt_profile=([^;]*)'); raw = m ? decodeURIComponent(m[1]) : null; }
@@ -935,7 +974,9 @@ function profileName() {
 }
 function updateGreeting() {
   const el = document.getElementById('greetTitle'); if (!el) return;
-  const g = greetingNow(), n = profileName();
+  const bday = isBirthday(TODAY);
+  const g = bday ? { text: 'Alles Gute zum Geburtstag', icon: 'birthday' } : greetingNow(), n = profileName();
+  if (bday) birthdayConfetti('ft');
   const safe = n.replace(/[<>&"]/g, '');
   el.innerHTML = `<span class="greet-ico ${g.icon}">${GREET_ICONS[g.icon]}</span><span>${g.text}${safe ? ', ' + safe : ''}</span>`;
 }
@@ -1150,7 +1191,12 @@ async function checkExceptionDay() {
   const result = await sbFetch(`exception_days?date=eq.${DAY}`) || [];
   isException = result.length > 0; updateExceptionUI();
 }
+function updateBdayNote() {
+  const n = document.getElementById('bdayNote'); if (!n) return;
+  n.style.display = (isBirthday(DAY) && !isException) ? 'flex' : 'none';
+}
 function updateExceptionUI() {
+  updateBdayNote();
   const bar = document.getElementById('exceptionBar');
   const toggle = document.getElementById('exceptionToggle');
   const label = document.getElementById('exceptionLabel');
