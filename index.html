@@ -52,14 +52,11 @@
   }
   .header-date { font-size: 13px; color: var(--text-dim); font-weight: 300; }
   .day-nav { display: flex; align-items: center; gap: 6px; }
-  .day-nav button { background: none; border: 1px solid var(--border); color: var(--text-dim); border-radius: 8px; width: 30px; height: 30px; font-size: 15px; cursor: pointer; }
-  .day-nav button:disabled { opacity: 0.3; cursor: default; }
-  .day-nav .header-date { cursor: pointer; position: relative; padding: 4px 2px; }
+  .day-nav .header-date { cursor: pointer; position: relative; padding: 6px 10px; border: 1px solid var(--border); border-radius: 8px; }
+  .day-nav .header-date.past { color: var(--accent); border-color: var(--accent); font-weight: 500; }
   .day-nav input[type=date] { position: absolute; inset: 0; opacity: 0; width: 100%; cursor: pointer; }
-  .past-day-bar { display: none; align-items: center; justify-content: space-between; gap: 10px; margin: 0 0 14px; padding: 10px 14px; border-radius: 8px;
-    background: rgba(240,192,96,0.1); border: 1px solid rgba(240,192,96,0.35); font-size: 13px; color: #f0c060; }
-  .past-day-bar.visible { display: flex; }
-  .past-day-bar button { background: none; border: 1px solid rgba(240,192,96,0.5); color: #f0c060; border-radius: 6px; padding: 4px 10px; font-size: 12px; cursor: pointer; font-family: inherit; }
+  .day-reset { display: none; background: none; border: none; color: var(--text-dim); font-size: 12px; text-decoration: underline; cursor: pointer; font-family: inherit; }
+  .day-reset.visible { display: inline; }
 
   .tabs {
     display: flex;
@@ -490,9 +487,8 @@
 <div class="header">
   <span class="header-title">Kalorien</span>
   <div class="day-nav">
-    <button onclick="shiftDay(-1)" aria-label="Vorheriger Tag">‹</button>
-    <span class="header-date"><span id="headerDate"></span><input type="date" id="dayPicker" onchange="setDay(this.value)"></span>
-    <button id="nextDayBtn" onclick="shiftDay(1)" aria-label="Nächster Tag">›</button>
+    <button class="day-reset" id="dayReset" onclick="setDay(TODAY)">Heute</button>
+    <span class="header-date" id="headerDateWrap"><span id="headerDate"></span> ▾<input type="date" id="dayPicker" onchange="setDay(this.value)"></span>
   </div>
 </div>
 
@@ -504,11 +500,6 @@
 
 <!-- TODAY -->
 <div class="section active" id="tab-today">
-
-  <div class="past-day-bar" id="pastDayBar">
-    <span id="pastDayText"></span>
-    <button onclick="setDay(TODAY)">Zu heute</button>
-  </div>
 
   <div class="exception-bar" id="exceptionBar">
     <span class="exception-label" id="exceptionLabel">Ausnahmetag</span>
@@ -705,15 +696,13 @@ function updateDayHeader() {
   document.getElementById('headerDate').textContent = formatDateFull(DAY);
   const picker = document.getElementById('dayPicker');
   picker.value = DAY; picker.max = TODAY;
-  document.getElementById('nextDayBtn').disabled = DAY >= TODAY;
-  const bar = document.getElementById('pastDayBar');
-  bar.classList.toggle('visible', DAY !== TODAY);
+  const past = DAY !== TODAY;
+  document.getElementById('headerDateWrap').classList.toggle('past', past);
+  document.getElementById('dayReset').classList.toggle('visible', past);
   const diff = Math.round((new Date(TODAY + 'T12:00:00') - new Date(DAY + 'T12:00:00')) / 86400000);
-  document.getElementById('pastDayText').textContent = diff === 1 ? 'Du trägst für gestern nach.' : `Du trägst für ${formatDateShort(DAY)} nach.`;
-  const dayName = DAY === TODAY ? 'Heute' : (diff === 1 ? 'Gestern' : formatDateShort(DAY));
-  document.querySelector('.tab').textContent = dayName;
+  const dayName = !past ? 'Heute' : (diff === 1 ? 'Gestern' : formatDateShort(DAY));
   document.getElementById('entriesLabel').textContent = dayName;
-  document.getElementById('tdeeLabel').textContent = DAY === TODAY ? 'Verbrauch gestern' : 'Verbrauch am Vortag';
+  document.getElementById('tdeeLabel').textContent = past ? 'Verbrauch am Vortag' : 'Verbrauch gestern';
 }
 async function setDay(d) {
   if (!d || d > TODAY) d = TODAY;
@@ -721,10 +710,6 @@ async function setDay(d) {
   updateDayHeader();
   await Promise.all([loadTodayEntries(), checkExceptionDay(), loadTodayTdee()]);
   renderEntries(); renderTotals();
-}
-function shiftDay(n) {
-  const d = new Date(DAY + 'T12:00:00'); d.setDate(d.getDate() + n);
-  setDay(localDateStr(d));
 }
 
 async function init() {
