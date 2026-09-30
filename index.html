@@ -7,6 +7,7 @@
 <meta name="color-scheme" content="dark">
 <meta name="theme-color" content="#1a1612">
 <title>Kalorien</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
@@ -412,6 +413,7 @@
   .btn-add-food { width: 100%; background: var(--accent); color: var(--bg); border: none; border-radius: 6px; padding: 10px; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; cursor: pointer; margin-top: 4px; }
 
   /* SETUP */
+  .btn-ghost-wide { width: 100%; padding: 11px; border-radius: 10px; background: none; border: 1px solid var(--border); color: var(--text); font-family: inherit; font-size: 14px; cursor: pointer; }
   .setup-overlay { position: fixed; inset: 0; background: var(--bg); z-index: 100; display: flex; align-items: center; justify-content: center; padding: 24px; }
   .setup-box { width: 100%; max-width: 420px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 28px 24px; }
   .setup-title { font-family: 'Lora', serif; font-size: 24px; color: var(--accent); margin-bottom: 6px; }
@@ -614,18 +616,45 @@
   @media (max-width: 420px) { .header-title { font-size: 1.6rem !important; } }
   .day-nav { padding-left: 55px; }
   .layout-row button.vis { width: 42px; font-size: 12px; } .layout-row button:disabled { opacity: 0.3; }
+/* ACCOUNT-CSS:BEGIN */
+  /* Konto: Login, Passwort, Übernahme */
+  .acct { --a-card: var(--card, var(--surface)); --a-muted: var(--muted, var(--text-dim)); --a-acc: var(--actual, var(--accent)); --a-in: var(--input-bg, var(--bg));
+    position: fixed; inset: 0; z-index: 9000; display: none; align-items: center; justify-content: center; padding: 1.2rem;
+    background: var(--bg); overflow-y: auto; font-family: inherit; color: var(--text); }
+  body.acct-open { overflow: hidden; }
+  .acct-box { width: 100%; max-width: 400px; background: var(--a-card); border: 1px solid var(--border); border-radius: 20px; padding: 1.8rem 1.5rem;
+    box-shadow: var(--shadow, 0 12px 32px rgba(0,0,0,0.28)); }
+  .acct h1 { font-family: 'Lora', Georgia, serif; font-size: 1.45rem; font-weight: 600; margin: 0 0 0.4rem; line-height: 1.25; }
+  .acct-sub { color: var(--a-muted); font-size: 0.86rem; line-height: 1.5; margin: 0 0 1.1rem; }
+  .acct form { display: flex; flex-direction: column; gap: 0.8rem; margin: 0; }
+  .acct label { display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.75rem; color: var(--a-muted); }
+  .acct input { background: var(--a-in); border: 1px solid var(--border); border-radius: 10px; color: var(--text); padding: 0.7rem 0.8rem;
+    font-size: 16px; font-family: inherit; outline: none; width: 100%; box-sizing: border-box; }
+  .acct input:focus { border-color: var(--a-acc); }
+  .acct-btn { background: var(--a-acc); color: var(--on-accent, #1a1612); border: none; border-radius: 10px; padding: 0.75rem; font-size: 0.95rem;
+    font-family: inherit; font-weight: 600; cursor: pointer; width: 100%; margin-top: 0.2rem; }
+  .acct-btn:disabled { opacity: 0.6; cursor: default; }
+  .acct-link { display: block; margin: 0.9rem auto 0; background: none; border: none; color: var(--a-muted); font-family: inherit; font-size: 0.82rem;
+    cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+  .acct-msg { display: none; font-size: 0.82rem; line-height: 1.45; color: var(--danger, var(--red, #e05a5a)); }
+  .acct-msg.on { display: block; margin: 0.2rem 0; }
+  .acct-msg.ok { color: var(--prognose, var(--green, #5ab5a0)); }
+  .acct-hint { font-size: 0.72rem; color: var(--a-muted); margin-top: -0.4rem; }
+  .acct-note { margin-top: 1.2rem; padding: 0.8rem 0.9rem; border-radius: 12px; font-size: 0.8rem; line-height: 1.5; color: var(--a-muted);
+    background: color-mix(in srgb, var(--a-acc) 9%, transparent); border: 1px solid color-mix(in srgb, var(--a-acc) 25%, transparent); }
+  .acct-prog { font-size: 0.8rem; color: var(--a-muted); min-height: 1.1em; margin: 0.3rem 0 0.6rem; }
+  .acct-mail { font-size: 0.9rem; word-break: break-all; }
+/* ACCOUNT-CSS:END */
 </style>
 </head>
 <body>
 
-<div class="setup-overlay" id="setupOverlay">
+<div class="setup-overlay" id="setupOverlay" style="display:none">
   <div class="setup-box">
-    <div class="setup-title">Kalorien</div>
-    <div class="setup-sub">Verbinde deine Supabase-Datenbank und deinen Gemini API-Key. Die Daten werden nur lokal in deinem Browser gespeichert.</div>
-    <div class="setup-field"><label>Supabase URL</label><input type="url" id="cfgUrl" placeholder="https://xxxx.supabase.co"></div>
-    <div class="setup-field"><label>Supabase Anon Key</label><input type="password" id="cfgKey" placeholder="eyJ..."></div>
+    <div class="setup-title">Fast geschafft</div>
+    <div class="setup-sub">Zum Erkennen von Essen und zum Scannen braucht die App einmal deinen Gemini API-Key. Er wird in deinem Profil gespeichert.</div>
     <div class="setup-field"><label>Gemini API Key</label><input type="password" id="cfgGemini" placeholder="AIza..."></div>
-    <button class="btn-setup" onclick="saveConfig()">Verbinden</button>
+    <button class="btn-setup" onclick="saveConfig()">Speichern</button>
     <div class="setup-error" id="setupError"></div>
   </div>
 </div>
@@ -809,19 +838,311 @@
 <div class="toast" id="toast"></div>
 
 <script>
+/* ACCOUNT-JS:BEGIN */
+const ACCT_APP = 'ft';
+// ── Konto: Login, Profil in der Datenbank, Übernahme alter Daten ─────────────
+// Gleicher Code in Gewichtstracker und Food Tracker. Beide Apps liegen auf derselben Domain,
+// teilen sich also den Login und die Einstellungen im Browser.
+const SB_CENTRAL_URL = 'https://kpxsnjrdrawjmsdcefxz.supabase.co';
+const SB_CENTRAL_KEY = 'sb_publishable_0GkNPLFsZ3rN3UeBEC2lRA_2zS5UYgx';
+// Einstellungen, die im Profil gespeichert werden und so auf jedem Gerät gleich sind
+const SYNC_KEYS = ['wt_profile', 'wt_goal1', 'wt_goal2', 'wt_rate', 'wt_measure_on', 'wt_measure_fields', 'wt_measure_pos',
+  'wt_kcal_on', 'wt_layout', 'wt_theme', 'wt_accent', 'ft_layout', 'default_tdee', 'gemini_key', 'kcal_source', 'import_done'];
+const Acct = { sb: null, user: null, uid: null, applying: false, timer: null, onReady: null };
+
+// Jede Änderung an einer dieser Einstellungen landet (kurz verzögert) im Profil
+(function () {
+  const set = Storage.prototype.setItem, rem = Storage.prototype.removeItem;
+  Storage.prototype.setItem = function (k, v) { set.call(this, k, v); if (this === window.localStorage && SYNC_KEYS.includes(k)) acctTouch(); };
+  Storage.prototype.removeItem = function (k) { rem.call(this, k); if (this === window.localStorage && SYNC_KEYS.includes(k)) acctTouch(); };
+})();
+function acctLs(k) {
+  try { const v = localStorage.getItem(k); if (v !== null && v !== '') return v; } catch (e) {}
+  const m = document.cookie.match('(?:^|; )' + k + '=([^;]*)');
+  return m ? decodeURIComponent(m[1]) : null;
+}
+function acctTouch() {
+  if (Acct.applying || !Acct.uid) return;
+  clearTimeout(Acct.timer);
+  Acct.timer = setTimeout(acctPush, 700);
+}
+function acctLocalSettings() {
+  const s = {};
+  SYNC_KEYS.forEach(k => { const v = acctLs(k); if (v !== null) s[k] = v; });
+  return s;
+}
+async function acctPush() {
+  if (!Acct.uid) return;
+  const settings = acctLocalSettings();
+  const row = { settings, updated_at: new Date().toISOString() };
+  try {
+    const p = JSON.parse(settings.wt_profile || '{}');
+    row.name = p.name || null; row.birthday = p.birthday || null;
+    row.gender = p.gender === 'm' || p.gender === 'w' ? p.gender : null;
+    row.height_cm = parseFloat(p.height) || null;
+  } catch (e) {}
+  const { error } = await Acct.sb.from('profiles').update(row).eq('id', Acct.uid);
+  if (error) console.warn('Profil speichern', error);
+}
+window.addEventListener('pagehide', () => { if (Acct.timer) { clearTimeout(Acct.timer); acctPush(); } });
+
+// ── Start ────────────────────────────────────────────────────────────────────
+async function acctBoot(onReady) {
+  Acct.onReady = onReady;
+  const hash = new URLSearchParams(location.hash.replace(/^#/, ''));
+  const linkType = hash.get('type');                      // invite | recovery
+  const linkError = hash.get('error_code') || hash.get('error');
+  Acct.sb = supabase.createClient(SB_CENTRAL_URL, SB_CENTRAL_KEY);
+  Acct.sb.auth.onAuthStateChange(ev => { if (ev === 'PASSWORD_RECOVERY') acctShow('setpw', { mode: 'recovery' }); });
+  let session = null;
+  try { session = (await Acct.sb.auth.getSession()).data.session; } catch (e) {}
+  if (location.hash) history.replaceState(null, '', location.pathname + location.search);
+  if (linkError) return acctShow('login', { msg: 'Der Link ist abgelaufen oder wurde schon benutzt. Unter „Passwort vergessen?“ bekommst du einen neuen.' });
+  if (!session) return acctShow('login');
+  if (linkType === 'invite' || linkType === 'recovery') return acctShow('setpw', { mode: linkType, session });
+  acctStart(session);
+}
+
+async function acctStart(session) {
+  Acct.user = session.user; Acct.uid = session.user.id;
+  // Anderes Konto als zuletzt auf diesem Gerät: dessen Einstellungen nicht übernehmen
+  const last = acctLs('acct_uid');
+  if (last && last !== Acct.uid) acctClearLocal();
+  try { localStorage.setItem('acct_uid', Acct.uid); } catch (e) {}
+  let { data: prof } = await Acct.sb.from('profiles').select('*').eq('id', Acct.uid).maybeSingle();
+  if (!prof) { await Acct.sb.from('profiles').insert({ id: Acct.uid }); prof = { settings: {} }; }
+  const server = prof.settings || {};
+  if (Object.keys(server).length) {
+    // Profil gewinnt; was nur auf diesem Gerät liegt, bleibt erhalten und wird mitgespeichert
+    Acct.applying = true;
+    Object.entries(server).forEach(([k, v]) => { if (SYNC_KEYS.includes(k) && v !== null) try { localStorage.setItem(k, v); } catch (e) {} });
+    Acct.applying = false;
+    if (SYNC_KEYS.some(k => acctLs(k) !== null && !(k in server))) acctTouch();
+  } else {
+    await acctPush();   // erster Login: Einstellungen von diesem Gerät ins Profil
+  }
+  acctHide();
+  Acct.onReady && Acct.onReady();
+  if (acctOldSources().length && acctLs('import_done') !== '1' && !sessionStorage.getItem('import_later')) setTimeout(() => acctShow('import'), 400);
+}
+
+function acctClearLocal() {
+  Acct.applying = true;
+  SYNC_KEYS.forEach(k => { try { localStorage.removeItem(k); } catch (e) {} document.cookie = k + '=;path=/;max-age=0;SameSite=Lax'; });
+  Acct.applying = false;
+}
+async function acctLogout() {
+  if (!confirm('Wirklich ausloggen? Deine Daten bleiben in deinem Profil gespeichert.')) return;
+  if (Acct.timer) { clearTimeout(Acct.timer); await acctPush(); }
+  Acct.uid = null;
+  try { await Acct.sb.auth.signOut(); } catch (e) {}
+  acctClearLocal();
+  try { localStorage.removeItem('acct_uid'); } catch (e) {}
+  location.reload();
+}
+
+// ── Anmelde-Bildschirm ───────────────────────────────────────────────────────
+const ACCT_ERR = {
+  'Invalid login credentials': 'E-Mail oder Passwort stimmt nicht.',
+  'Email not confirmed': 'Die E-Mail-Adresse ist noch nicht bestätigt.',
+  'New password should be different from the old password.': 'Das neue Passwort muss sich vom alten unterscheiden.',
+};
+const acctErr = e => ACCT_ERR[e && e.message] || (e && /rate limit/i.test(e.message) ? 'Zu viele Versuche. Bitte warte ein paar Minuten.' : (e && e.message) || 'Das hat nicht geklappt.');
+const acctEsc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+function acctEl() {
+  let el = document.getElementById('acctScreen');
+  if (!el) { el = document.createElement('div'); el.id = 'acctScreen'; el.className = 'acct'; document.body.appendChild(el); }
+  return el;
+}
+function acctHide() { const el = document.getElementById('acctScreen'); if (el) el.style.display = 'none'; document.body.classList.remove('acct-open'); }
+
+function acctShow(view, opt = {}) {
+  const el = acctEl();
+  el.style.display = 'flex'; document.body.classList.add('acct-open');
+  el.dataset.view = view;
+  const appName = ACCT_APP === 'ft' ? 'Food Tracker' : 'Gewichtstracker';
+  const old = acctOldSources().length;
+  let h = '';
+  if (view === 'login') {
+    h = `<h1>Willkommen zurück</h1><p class="acct-sub">Melde dich an, um deinen ${appName} zu öffnen.</p>
+      <form onsubmit="acctLogin(event)">
+        <label>E-Mail<input type="email" id="acctEmail" autocomplete="username" required value="${acctEsc(opt.email || '')}"></label>
+        <label>Passwort<input type="password" id="acctPw" autocomplete="current-password" required></label>
+        <div class="acct-msg${opt.msg ? ' on' : ''}" id="acctMsg">${acctEsc(opt.msg || '')}</div>
+        <button class="acct-btn" type="submit">Einloggen</button>
+      </form>
+      <button class="acct-link" onclick="acctShow('forgot',{email:document.getElementById('acctEmail').value})">Passwort vergessen?</button>
+      ${old ? `<div class="acct-note">Neu mit Profil? Du bekommst eine Einladung per Mail und legst dort dein Passwort fest. Deine bisherigen Einträge kannst du danach mit einem Tipp übernehmen.</div>` : ''}`;
+  } else if (view === 'forgot') {
+    h = `<h1>Passwort vergessen</h1><p class="acct-sub">Wir schicken dir einen Link, mit dem du ein neues Passwort festlegst.</p>
+      <form onsubmit="acctForgot(event)">
+        <label>E-Mail<input type="email" id="acctEmail" autocomplete="username" required value="${acctEsc(opt.email || '')}"></label>
+        <div class="acct-msg" id="acctMsg"></div>
+        <button class="acct-btn" type="submit">Link schicken</button>
+      </form>
+      <button class="acct-link" onclick="acctShow('login',{email:document.getElementById('acctEmail').value})">Zurück zum Login</button>`;
+  } else if (view === 'sent') {
+    h = `<h1>Schau in dein Postfach</h1><p class="acct-sub">Falls es ein Konto mit <b>${acctEsc(opt.email)}</b> gibt, ist jetzt eine Mail unterwegs. Sie kann ein paar Minuten brauchen und landet manchmal im Spam.</p>
+      <button class="acct-btn" onclick="acctShow('login',{email:'${acctEsc(opt.email)}'})">Zurück zum Login</button>`;
+  } else if (view === 'setpw') {
+    Acct.pwMode = opt.mode; Acct.pwSession = opt.session || Acct.pwSession;
+    const t = opt.mode === 'invite' ? ['Schön, dass du da bist', 'Leg jetzt dein Passwort fest. Damit loggst du dich ab sofort in beiden Apps ein.']
+      : opt.mode === 'change' ? ['Passwort ändern', 'Gib dein neues Passwort zweimal ein.']
+      : ['Neues Passwort', 'Leg ein neues Passwort fest.'];
+    h = `<h1>${t[0]}</h1><p class="acct-sub">${t[1]}</p>
+      <form onsubmit="acctSetPw(event)">
+        <label>Neues Passwort<input type="password" id="acctPw" autocomplete="new-password" minlength="8" required></label>
+        <label>Noch einmal<input type="password" id="acctPw2" autocomplete="new-password" minlength="8" required></label>
+        <div class="acct-hint">Mindestens 8 Zeichen.</div>
+        <div class="acct-msg" id="acctMsg"></div>
+        <button class="acct-btn" type="submit">Passwort speichern</button>
+      </form>
+      ${opt.mode === 'change' ? `<button class="acct-link" onclick="acctHide()">Abbrechen</button>` : ''}`;
+  } else if (view === 'import') {
+    h = `<h1>Alte Daten übernehmen</h1>
+      <p class="acct-sub">Auf diesem Gerät ist noch deine bisherige Datenbank eingetragen. Du kannst alle Einträge einmal in dein Profil kopieren: Gewicht, Events, Zyklen, Maße, Essen, Lebensmittel, Verbrauch und Ausnahmetage.</p>
+      <p class="acct-sub">Die alte Datenbank bleibt dabei unverändert. Doppelte Einträge werden übersprungen, du kannst es also auch ein zweites Mal machen.</p>
+      <div class="acct-msg" id="acctMsg"></div>
+      <div id="acctProg" class="acct-prog"></div>
+      <button class="acct-btn" id="acctImpBtn" onclick="acctImport()">Jetzt übernehmen</button>
+      <button class="acct-link" id="acctImpLater" onclick="sessionStorage.setItem('import_later','1');acctHide()">Später</button>`;
+  }
+  el.innerHTML = `<div class="acct-box">${h}</div>`;
+  const f = el.querySelector('input'); if (f && !f.value) setTimeout(() => f.focus(), 50);
+}
+function acctSay(msg, ok) { const m = document.getElementById('acctMsg'); if (!m) return; m.textContent = msg; m.className = 'acct-msg on' + (ok ? ' ok' : ''); }
+function acctBusy(on, label) { const b = document.querySelector('#acctScreen .acct-btn'); if (!b) return; b.disabled = on; if (label) b.textContent = label; }
+
+async function acctLogin(e) {
+  e.preventDefault();
+  const email = document.getElementById('acctEmail').value.trim(), password = document.getElementById('acctPw').value;
+  acctBusy(true, 'Einen Moment …');
+  const { data, error } = await Acct.sb.auth.signInWithPassword({ email, password });
+  if (error) { acctBusy(false, 'Einloggen'); return acctSay(acctErr(error)); }
+  acctStart(data.session);
+}
+async function acctForgot(e) {
+  e.preventDefault();
+  const email = document.getElementById('acctEmail').value.trim();
+  acctBusy(true, 'Wird geschickt …');
+  const { error } = await Acct.sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname });
+  if (error) { acctBusy(false, 'Link schicken'); return acctSay(acctErr(error)); }
+  acctShow('sent', { email });
+}
+async function acctSetPw(e) {
+  e.preventDefault();
+  const p1 = document.getElementById('acctPw').value, p2 = document.getElementById('acctPw2').value;
+  if (p1.length < 8) return acctSay('Bitte mindestens 8 Zeichen.');
+  if (p1 !== p2) return acctSay('Die beiden Passwörter sind nicht gleich.');
+  acctBusy(true, 'Wird gespeichert …');
+  const { error } = await Acct.sb.auth.updateUser({ password: p1 });
+  if (error) { acctBusy(false, 'Passwort speichern'); return acctSay(acctErr(error)); }
+  if (Acct.pwMode === 'change') { acctSay('Neues Passwort gespeichert.', true); setTimeout(acctHide, 1200); return; }
+  const session = Acct.pwSession || (await Acct.sb.auth.getSession()).data.session;
+  acctStart(session);
+}
+
+// ── Alte Daten übernehmen ────────────────────────────────────────────────────
+function acctOldSources() {
+  const out = [];
+  const add = (u, k) => {
+    if (!u || !k) return;
+    u = u.trim().replace(/\/+$/, '');
+    if (u === SB_CENTRAL_URL || out.some(x => x.url === u)) return;
+    out.push({ url: u, key: k.trim() });
+  };
+  add(acctLs('wt_url'), acctLs('wt_key'));
+  add(acctLs('sb_url'), acctLs('sb_key'));
+  return out;
+}
+async function acctOldRead(src, table) {
+  const rows = [];
+  const headers = { apikey: src.key };
+  if (src.key.startsWith('eyJ')) headers.Authorization = 'Bearer ' + src.key;
+  for (let off = 0; ; off += 1000) {
+    const r = await fetch(`${src.url}/rest/v1/${table}?select=*&limit=1000&offset=${off}`, { headers });
+    if (!r.ok) { if (off === 0) return null; break; }      // Tabelle gibt es dort nicht
+    const d = await r.json(); rows.push(...d);
+    if (d.length < 1000) break;
+  }
+  return rows;
+}
+const ACCT_TABLES = [
+  { t: 'weight_entries', label: ['Gewichtseintrag', 'Gewichtseinträge'], key: 'user_id,date', cols: ['date', 'kg'] },
+  { t: 'events', label: ['Event', 'Events'], dedupe: r => r.date + '|' + r.name, cols: ['date', 'name'] },
+  { t: 'cycles', label: ['Zyklus', 'Zyklen'], dedupe: r => r.start_date + '|' + (r.name || ''), cols: ['start_date', 'name'] },
+  { t: 'body_measurements', label: ['Maß-Eintrag', 'Maß-Einträge'], key: 'user_id,date',
+    cols: ['date', 'shoulder', 'bust', 'underbust', 'waist', 'belly', 'hip', 'arm', 'thigh', 'knee', 'calf', 'created_at'] },
+  { t: 'daily_kcal', label: ['Kalorienwert', 'Kalorienwerte'], key: 'user_id,date', cols: ['date', 'kcal'] },
+  { t: 'foods', label: ['Lebensmittel', 'Lebensmittel'], key: 'id', cols: ['id', 'name', 'kcal', 'carbs', 'protein', 'sugar', 'default_amount_g', 'created_at'], num: ['kcal', 'carbs', 'protein', 'sugar'] },
+  { t: 'log_entries', label: ['Essenseintrag', 'Essenseinträge'], key: 'id', cols: ['id', 'date', 'food_id', 'food_name', 'amount_g', 'kcal', 'carbs', 'protein', 'sugar', 'notes', 'created_at'], num: ['kcal', 'carbs', 'protein', 'sugar'] },
+  { t: 'tdee_entries', label: ['Verbrauchswert', 'Verbrauchswerte'], key: 'user_id,date', cols: ['date', 'tdee'] },
+  { t: 'exception_days', label: ['Ausnahmetag', 'Ausnahmetage'], key: 'user_id,date', cols: ['date'] },
+];
+async function acctImport() {
+  const btn = document.getElementById('acctImpBtn'), later = document.getElementById('acctImpLater'), prog = document.getElementById('acctProg');
+  btn.disabled = true; btn.textContent = 'Wird übernommen …'; later.style.display = 'none';
+  const done = [];
+  try {
+    const got = {};
+    for (const src of acctOldSources()) {
+      for (const T of ACCT_TABLES) {
+        prog.textContent = 'Lese ' + T.label[1] + ' …';
+        const rows = await acctOldRead(src, T.t);
+        if (rows && rows.length) (got[T.t] = got[T.t] || []).push(...rows);
+      }
+    }
+    const foodIds = new Set((got.foods || []).map(r => r.id));
+    for (const T of ACCT_TABLES) {
+      let rows = got[T.t]; if (!rows || !rows.length) continue;
+      prog.textContent = 'Speichere ' + T.label[1] + ' …';
+      rows = rows.map(r => {
+        const o = { user_id: Acct.uid };
+        T.cols.forEach(c => { if (r[c] !== undefined) o[c] = r[c]; });
+        (T.num || []).forEach(c => { if (o[c] == null) o[c] = 0; });
+        return o;
+      });
+      if (T.t === 'log_entries') rows.forEach(r => { if (r.food_id && !foodIds.has(r.food_id)) r.food_id = null; });
+      if (T.key && T.key !== 'id') {                     // pro Tag nur ein Eintrag
+        const seen = new Set(); rows = rows.filter(r => !seen.has(r.date) && seen.add(r.date));
+      }
+      if (T.dedupe) {                                    // ohne festen Schlüssel: vorhandene überspringen
+        const { data: have } = await Acct.sb.from(T.t).select('*');
+        const seen = new Set((have || []).map(T.dedupe));
+        rows = rows.filter(r => { const k = T.dedupe(r); if (seen.has(k)) return false; seen.add(k); return true; });
+      }
+      for (let i = 0; i < rows.length; i += 500) {
+        const chunk = rows.slice(i, i + 500);
+        const q = T.dedupe ? Acct.sb.from(T.t).insert(chunk) : Acct.sb.from(T.t).upsert(chunk, { onConflict: T.key, ignoreDuplicates: true });
+        const { error } = await q;
+        if (error) throw new Error(T.label[1] + ': ' + error.message);
+      }
+      done.push(`${rows.length.toLocaleString('de-DE')} ${rows.length === 1 ? T.label[0] : T.label[1]}`);
+    }
+    if ((got.log_entries || []).length && !acctLs('kcal_source')) localStorage.setItem('kcal_source', 'food');
+    localStorage.setItem('import_done', '1');
+    prog.textContent = '';
+    acctSay(done.length ? 'Fertig! Übernommen: ' + done.join(', ') + '.' : 'Fertig. Es gab nichts Neues zu übernehmen.', true);
+    btn.disabled = false; btn.textContent = 'Weiter'; btn.onclick = () => location.reload();
+  } catch (e) {
+    prog.textContent = '';
+    acctSay('Das hat nicht ganz geklappt (' + e.message + '). Was schon übernommen ist, bleibt. Du kannst es einfach nochmal versuchen.');
+    btn.disabled = false; btn.textContent = 'Nochmal versuchen'; later.style.display = '';
+  }
+}
+/* ACCOUNT-JS:END */
 let SB_URL = '', SB_KEY = '', GEMINI_KEY = '';
 
 function saveConfig() {
-  const url = document.getElementById('cfgUrl').value.trim().replace(/\/$/, '');
-  const key = document.getElementById('cfgKey').value.trim();
   const gem = document.getElementById('cfgGemini').value.trim();
-  if (!url || !key || !gem) { showSetupError('Bitte alle Felder ausfüllen.'); return; }
-  localStorage.setItem('sb_url', url);
-  localStorage.setItem('sb_key', key);
+  if (!gem) { showSetupError('Bitte den Key eintragen.'); return; }
   localStorage.setItem('gemini_key', gem);
-  SB_URL = url; SB_KEY = key; GEMINI_KEY = gem;
+  GEMINI_KEY = gem;
+  const first = document.getElementById('setupOverlay').dataset.first === '1';
   document.getElementById('setupOverlay').style.display = 'none';
-  init();
+  if (first) { document.getElementById('setupOverlay').dataset.first = ''; init(); }
+  else showToast('Gemini-Key gespeichert.', 'ok');
 }
 function showSetupError(msg) {
   const el = document.getElementById('setupError');
@@ -829,10 +1150,12 @@ function showSetupError(msg) {
 }
 
 async function sbFetch(path, method = 'GET', body = null, extra = {}) {
+  const { data: { session } } = await Acct.sb.auth.getSession();
+  if (!session) { location.reload(); return null; }
   const res = await fetch(`${SB_URL}/rest/v1/${path}`, {
     method,
     headers: {
-      'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`,
+      'apikey': SB_KEY, 'Authorization': `Bearer ${session.access_token}`,
       'Content-Type': 'application/json',
       'Prefer': method === 'POST' ? 'return=representation' : '',
       ...extra
@@ -892,28 +1215,22 @@ function renderLookMenu() {
     <button onclick="moveWin(${i},-1)" ${i === 0 ? 'disabled' : ''}>↑</button><button onclick="moveWin(${i},1)" ${i === l.length - 1 ? 'disabled' : ''}>↓</button>
     <button class="vis" onclick="toggleWin(${i})">${x.hidden ? 'aus' : 'an'}</button></div>`).join('');
 }
-const MENU_TITLES = { main: 'Menü', budget: 'Standard-Verbrauch', look: 'Aussehen', layout: 'Anordnung', connection: 'Verbindung' };
+const MENU_TITLES = { main: 'Menü', budget: 'Standard-Verbrauch', look: 'Aussehen', layout: 'Anordnung', account: 'Konto' };
 function showMenuPage(id) {
   document.querySelectorAll('.menu-page').forEach(p => p.classList.toggle('active', p.dataset.page === id));
   document.getElementById('menuTitle').textContent = MENU_TITLES[id] || 'Menü';
   document.getElementById('menuPanel').classList.toggle('sub', id !== 'main');
   if (id === 'look' || id === 'layout') renderLookMenu();
   if (id === 'budget' && defaultTdee) document.getElementById('fDefaultTdee').value = Math.round(defaultTdee);
-  if (id === 'connection') {
-    const u = lsGet('sb_url') || '', g = lsGet('gemini_key') || '';
-    document.getElementById('connHost').textContent = u ? u.replace(/^https?:\/\//, '') : 'nicht verbunden';
+  if (id === 'account') {
+    const g = lsGet('gemini_key') || '';
+    document.getElementById('accMail').textContent = (Acct.user && Acct.user.email) || '–';
     document.getElementById('connGem').textContent = g ? '••••••' + g.slice(-4) : 'fehlt';
+    document.getElementById('accImport').style.display = acctOldSources().length ? '' : 'none';
   }
 }
-function logout() {
-  if (!confirm('Auf diesem Gerät ausloggen? Deine Daten bleiben in Supabase, du musst dich danach nur neu verbinden.')) return;
-  ['sb_url', 'sb_key', 'gemini_key'].forEach(k => lsSet(k, null));
-  location.reload();
-}
-function changeConnection() {
+function changeGemini() {
   closeMenu();
-  document.getElementById('cfgUrl').value = lsGet('sb_url') || '';
-  document.getElementById('cfgKey').value = lsGet('sb_key') || '';
   document.getElementById('cfgGemini').value = lsGet('gemini_key') || '';
   document.getElementById('setupOverlay').style.display = '';
 }
@@ -1158,7 +1475,7 @@ async function loadTodayTdee() {
 async function saveTdee() {
   const val = parseFloat(document.getElementById('tdeeInput').value);
   if (!val || val < 500) { showToast('Bitte einen gültigen Verbrauch eingeben.', 'err'); return; }
-  await sbFetch('tdee_entries', 'POST', { date: DAY, tdee: val },
+  await sbFetch('tdee_entries?on_conflict=user_id,date', 'POST', { user_id: Acct.uid, date: DAY, tdee: val },
     { 'Prefer': 'resolution=merge-duplicates,return=representation' });
   todayTdee = val;
   renderTotals();
@@ -1444,6 +1761,7 @@ async function confirmEntry() {
       await loadFoods();
     }
     await sbFetch('log_entries', 'POST', { date: DAY, food_name: foodName, amount_g: amount, kcal, carbs, protein, sugar });
+    if (!lsGet('kcal_source')) lsSet('kcal_source', 'food');   // Gewichtstracker nimmt die Kalorien dann von hier
   } catch (e) {
     console.error(e);
     showToast(`Fehler beim Speichern: ${e.message}`, 'err');
@@ -1799,15 +2117,15 @@ function showToast(msg, type = '') {
   clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
 }
 
-(function boot() {
-  SB_URL = localStorage.getItem('sb_url') || '';
-  SB_KEY = localStorage.getItem('sb_key') || '';
-  GEMINI_KEY = localStorage.getItem('gemini_key') || '';
-  if (SB_URL && SB_KEY && GEMINI_KEY) {
-    document.getElementById('setupOverlay').style.display = 'none';
-    init();
-  }
-})();
+// Start: erst Login, dann App
+function ftStart() {
+  SB_URL = SB_CENTRAL_URL; SB_KEY = SB_CENTRAL_KEY;
+  GEMINI_KEY = lsGet('gemini_key') || '';
+  applyTheme();
+  if (GEMINI_KEY) init();
+  else { const o = document.getElementById('setupOverlay'); o.dataset.first = '1'; o.style.display = ''; }
+}
+acctBoot(ftStart);
 </script>
 <div class="menu-backdrop" id="menuBackdrop" onclick="closeMenu()"></div>
 <aside class="menu-panel" id="menuPanel" aria-hidden="true">
@@ -1821,10 +2139,10 @@ function showToast(msg, type = '') {
     <button class="nav-item " onclick="showMenuPage('budget')"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M12 3c2.5 3 5 5.6 5 9a5 5 0 0 1-10 0c0-1.6.6-3 1.6-4.2.3 1.4 1 2.4 2.1 2.9C10.3 8.4 11 5.6 12 3z"/></svg></span><span class="nav-txt">Standard-Verbrauch<small>Dein normaler Tagesbedarf</small></span><span class="nav-chev">›</span></button>
     <button class="nav-item " onclick="showMenuPage('look')"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 0 18c1.1 0 1.6-.8 1.6-1.6 0-.9-.7-1.3-.7-2.2 0-1 .8-1.7 1.8-1.7H17a4 4 0 0 0 4-4c0-4.4-4-8.5-9-8.5z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10" cy="7" r="1"/><circle cx="15" cy="7.5" r="1"/></svg></span><span class="nav-txt">Aussehen<small>Farbthema und Akzentfarbe</small></span><span class="nav-chev">›</span></button>
     <button class="nav-item " onclick="showMenuPage('layout')"><span class="nav-ico"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="6" rx="2"/><rect x="4" y="14" width="16" height="6" rx="2"/></svg></span><span class="nav-txt">Anordnung<small>Bereiche im Heute-Tab</small></span><span class="nav-chev">›</span></button>
-    <button class="nav-item " onclick="showMenuPage('connection')"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M15 7a3 3 0 1 1 0 6 3 3 0 0 1 0-6zM13 11l-8 8M8 16l2 2M6 18l2 2"/></svg></span><span class="nav-txt">Verbindung<small>Supabase und Gemini</small></span><span class="nav-chev">›</span></button>
+    <button class="nav-item " onclick="showMenuPage('account')"><span class="nav-ico"><svg viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></span><span class="nav-txt">Konto<small>E-Mail, Passwort, Gemini-Key</small></span><span class="nav-chev">›</span></button>
     <div class="menu-section">Mehr</div>
     <a class="nav-item" href="../weight-tracker/"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M7 4v14M3 14l4 4 4-4M17 20V6M13 10l4-4 4 4"/></svg></span><span class="nav-txt">Gewichtstracker öffnen<small>Gewicht, Ziele und Profil</small></span><span class="nav-chev">↗</span></a>
-    <button class="nav-item danger" onclick="logout()"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3"/><path d="M10 17l-5-5 5-5M5 12h11"/></svg></span><span class="nav-txt">Ausloggen<small>Verbindung auf diesem Gerät trennen</small></span><span class="nav-chev">›</span></button>
+    <button class="nav-item danger" onclick="acctLogout()"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3"/><path d="M10 17l-5-5 5-5M5 12h11"/></svg></span><span class="nav-txt">Ausloggen<small>Auf diesem Gerät abmelden</small></span><span class="nav-chev">›</span></button>
   </div>
   <div class="menu-page" data-page="budget">
     <div style="font-size:12px;color:var(--text-dim);margin-bottom:12px;line-height:1.5">
@@ -1839,17 +2157,19 @@ function showToast(msg, type = '') {
     <div class="theme-grid" id="themeGrid"></div>
     <label class="accent-row">Eigene Akzentfarbe <input type="color" id="accentPick" oninput="setAccent(this.value)">
       <a href="#" onclick="setAccent(null);return false">zurücksetzen</a></label>
-    <div class="menu-foot" style="margin-top:-0.6rem">Gilt auch für den Gewichtstracker auf diesem Gerät.</div>
+    <div class="menu-foot" style="margin-top:-0.6rem">Gilt auch für den Gewichtstracker.</div>
   </div>
   <div class="menu-page" data-page="layout">
     <div id="layoutList"></div>
-    <div class="menu-foot" style="margin-top:0.4rem">Die Anordnung gilt nur für dieses Gerät.</div>
+    <div class="menu-foot" style="margin-top:0.4rem">Wird in deinem Profil gespeichert.</div>
   </div>
-  <div class="menu-page" data-page="connection">
-    <div class="conn-box"><div class="menu-foot">Supabase</div><div id="connHost" class="conn-host">–</div>
+  <div class="menu-page" data-page="account">
+    <div class="conn-box"><div class="menu-foot">Angemeldet als</div><div id="accMail" class="conn-host">–</div>
       <div class="menu-foot" style="margin-top:0.6rem">Gemini-Key</div><div id="connGem" class="conn-host">–</div></div>
-    <button class="btn-confirm" style="width:100%;margin-top:0.8rem;padding:11px" onclick="changeConnection()">Verbindung ändern</button>
-    <div class="menu-foot" style="margin-top:0.6rem">Deine Einträge liegen in deiner Supabase-Datenbank. Die Zugangsdaten sind nur auf diesem Gerät gespeichert.</div>
+    <button class="btn-confirm" style="width:100%;margin-top:0.8rem;padding:11px" onclick="closeMenu();acctShow('setpw',{mode:'change'})">Passwort ändern</button>
+    <button class="btn-ghost-wide" style="margin-top:0.6rem" onclick="changeGemini()">Gemini-Key ändern</button>
+    <button class="btn-ghost-wide" id="accImport" style="margin-top:0.6rem;display:none" onclick="closeMenu();acctShow('import')">Alte Daten übernehmen</button>
+    <div class="menu-foot" style="margin-top:0.8rem">Deine Einträge und Einstellungen liegen in deinem Profil. Du kannst dich damit auf jedem Gerät und in beiden Apps einloggen.</div>
   </div>
 </aside>
 </body>
