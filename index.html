@@ -580,6 +580,35 @@
   .chart-label { font-family: 'Lora', serif; font-size: 17px; font-weight: 600; color: var(--text); text-transform: none; letter-spacing: 0; margin-bottom: 14px; }
   .week-summary-cards .stat-card, .week-summary-cards > div { border-radius: 14px; }
   .week-table td:first-child, .week-table th:first-child { white-space: nowrap; }
+  .menu-back { display: none; background: none; border: none; color: var(--text); font-size: 1.6rem; line-height: 1; cursor: pointer; padding: 0 0.4rem 0 0; }
+  .menu-panel.sub .menu-back { display: block; } #menuTitle { flex: 1; }
+  .menu-page { display: none; animation: menuIn 0.18s ease; } .menu-page.active { display: block; }
+  @keyframes menuIn { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: none; } }
+  .nav-item { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; cursor: pointer; text-decoration: none;
+    background: var(--glass); border: 1px solid var(--border); border-radius: 14px; padding: 11px 12px; margin-bottom: 7px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 14px; }
+  .nav-ico { width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center; flex-shrink: 0; color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); }
+  .nav-ico svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .nav-txt { flex: 1; min-width: 0; } .nav-txt small { display: block; color: var(--text-dim); font-size: 11.5px; margin-top: 1px; }
+  .nav-chev { color: var(--text-dim); font-size: 18px; }
+  .nav-item.danger { color: var(--red); } .nav-item.danger .nav-ico { color: var(--red); background: color-mix(in srgb, var(--red) 14%, transparent); }
+  .conn-box { background: var(--glass); border: 1px solid var(--border); border-radius: 14px; padding: 12px; }
+  .conn-host { font-size: 14px; margin-top: 2px; overflow-wrap: anywhere; }
+  .menu-page[data-page=budget] .form-row { display: flex; gap: 8px; align-items: flex-end; }
+  /* Begrüßung */
+  .header-title { display: flex; align-items: center; gap: 11px; line-height: 1.12; font-family: 'Lora', serif; margin: 0; }
+  .greet-ico { flex-shrink: 0; width: 44px; height: 44px; border-radius: 16px; display: grid; place-items: center; color: var(--accent);
+    background: radial-gradient(circle at 30% 25%, color-mix(in srgb, var(--accent) 28%, transparent), color-mix(in srgb, var(--accent) 8%, transparent));
+    border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border)); }
+  .greet-ico svg { width: 26px; height: 26px; overflow: visible; }
+  .greet-ico.noon .rays { transform-origin: 16px 16px; animation: greetSpin 24s linear infinite; }
+  .greet-ico.morning .rays, .greet-ico.evening .rays { animation: greetPulse 3.5s ease-in-out infinite; }
+  .greet-ico.night .stars { animation: greetTwinkle 2.8s ease-in-out infinite; }
+  @keyframes greetSpin { to { transform: rotate(360deg); } }
+  @keyframes greetPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.45; } }
+  @keyframes greetTwinkle { 0%,100% { opacity: 1; } 50% { opacity: 0.2; } }
+  @media (prefers-reduced-motion: reduce) { .greet-ico * { animation: none !important; } }
+  @media (max-width: 420px) { .header-title { font-size: 1.6rem !important; } }
+  .day-nav { padding-left: 55px; }
   .layout-row button.vis { width: 42px; font-size: 12px; } .layout-row button:disabled { opacity: 0.3; }
 </style>
 </head>
@@ -598,7 +627,7 @@
 </div>
 
 <div class="header">
-  <span class="header-title">Kalorien</span>
+  <h1 class="header-title" id="greetTitle">Kalorien</h1>
   <button class="menu-btn" onclick="openMenu()" aria-label="Menü">☰</button>
   <div class="day-nav">
     <button class="day-reset" id="dayReset" onclick="setDay(TODAY)">Heute</button>
@@ -744,18 +773,6 @@
 
 <!-- FOODS -->
 <div class="section" id="tab-foods">
-  <div class="entries-label">Einstellungen</div>
-  <div class="add-food-form" style="margin-bottom:24px">
-    <div class="form-title">Standard-Verbrauch</div>
-    <div style="font-size:12px;color:var(--text-dim);margin-bottom:12px;line-height:1.5">
-      Wird automatisch fürs Defizit heute genutzt, solange du noch keinen genauen Wert eingetragen hast.
-    </div>
-    <div class="form-row">
-      <div class="form-field narrow"><label>kcal / Tag</label><input type="number" id="fDefaultTdee" placeholder="1800"></div>
-      <button class="btn-add-food" style="width:auto;align-self:flex-end;margin-top:0" onclick="saveDefaultTdee()">Speichern</button>
-    </div>
-  </div>
-
   <div class="win">
   <div class="entries-label">Stammessen</div>
   <div class="food-list" id="foodList"><div class="empty-state">Keine Lebensmittel gespeichert.</div></div>
@@ -870,7 +887,61 @@ function renderLookMenu() {
     <button onclick="moveWin(${i},-1)" ${i === 0 ? 'disabled' : ''}>↑</button><button onclick="moveWin(${i},1)" ${i === l.length - 1 ? 'disabled' : ''}>↓</button>
     <button class="vis" onclick="toggleWin(${i})">${x.hidden ? 'aus' : 'an'}</button></div>`).join('');
 }
-function openMenu() { renderLookMenu(); document.getElementById('menuPanel').classList.add('open'); document.getElementById('menuBackdrop').classList.add('open'); }
+const MENU_TITLES = { main: 'Menü', budget: 'Standard-Verbrauch', look: 'Aussehen', layout: 'Anordnung', connection: 'Verbindung' };
+function showMenuPage(id) {
+  document.querySelectorAll('.menu-page').forEach(p => p.classList.toggle('active', p.dataset.page === id));
+  document.getElementById('menuTitle').textContent = MENU_TITLES[id] || 'Menü';
+  document.getElementById('menuPanel').classList.toggle('sub', id !== 'main');
+  if (id === 'look' || id === 'layout') renderLookMenu();
+  if (id === 'budget' && defaultTdee) document.getElementById('fDefaultTdee').value = Math.round(defaultTdee);
+  if (id === 'connection') {
+    const u = lsGet('sb_url') || '', g = lsGet('gemini_key') || '';
+    document.getElementById('connHost').textContent = u ? u.replace(/^https?:\/\//, '') : 'nicht verbunden';
+    document.getElementById('connGem').textContent = g ? '••••••' + g.slice(-4) : 'fehlt';
+  }
+}
+function logout() {
+  if (!confirm('Auf diesem Gerät ausloggen? Deine Daten bleiben in Supabase, du musst dich danach nur neu verbinden.')) return;
+  ['sb_url', 'sb_key', 'gemini_key'].forEach(k => lsSet(k, null));
+  location.reload();
+}
+function changeConnection() {
+  closeMenu();
+  document.getElementById('cfgUrl').value = lsGet('sb_url') || '';
+  document.getElementById('cfgKey').value = lsGet('sb_key') || '';
+  document.getElementById('cfgGemini').value = lsGet('gemini_key') || '';
+  document.getElementById('setupOverlay').style.display = '';
+}
+// Begrüßung nach Tageszeit; Name kommt aus dem Profil des Gewichtstrackers (gleicher Speicher)
+const GREET_ICONS = {
+  morning: `<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 22h20"/><path d="M10 22a6 6 0 0 1 12 0"/><path d="M8.2 14.2l2 2M23.8 14.2l-2 2M4 18h2M26 18h2" class="rays"/><path d="M16 12V4M13 7l3-3 3 3"/><path d="M9 26h14" opacity=".5"/></svg>`,
+  noon: `<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="16" cy="16" r="5.5"/><g class="rays"><path d="M16 4v3M16 25v3M4 16h3M25 16h3M7.5 7.5l2.1 2.1M22.4 22.4l2.1 2.1M7.5 24.5l2.1-2.1M22.4 9.6l2.1-2.1"/></g></svg>`,
+  afternoon: `<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="13" cy="13" r="4.5"/><path d="M13 4v2M4 13h2M6.6 6.6l1.4 1.4M19.4 6.6 18 8" class="rays"/><path d="M11 25h12a4.5 4.5 0 0 0 0-9 6 6 0 0 0-11.3 1.8A3.6 3.6 0 0 0 11 25z" fill="var(--surface)"/></svg>`,
+  evening: `<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 21h22"/><path d="M10 21a6 6 0 0 1 12 0"/><path d="M8 25h16M11 28.5h10" opacity=".55"/><path d="M16 4v8M13 9l3 3 3-3"/><path d="M9.5 13.5l1.4 1.4M22.5 13.5l-1.4 1.4" class="rays" opacity=".7"/></svg>`,
+  night: `<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 21.5A9 9 0 0 1 12.5 7a9 9 0 1 0 12.3 12.3 8.9 8.9 0 0 1-3.8 2.2z"/><path d="M23 6.5v3M21.5 8h3M26.5 13v2M25.5 14h2" class="stars"/></svg>`,
+};
+function greetingNow(d = new Date()) {
+  const h = d.getHours();
+  if (h >= 5 && h < 11) return { text: 'Guten Morgen', icon: 'morning' };
+  if (h >= 11 && h < 14) return { text: 'Guten Mittag', icon: 'noon' };
+  if (h >= 14 && h < 18) return { text: 'Schönen Nachmittag', icon: 'afternoon' };
+  if (h >= 18 && h < 22) return { text: 'Guten Abend', icon: 'evening' };
+  return { text: 'Gute Nacht', icon: 'night' };
+}
+function profileName() {
+  let raw = lsGet('wt_profile');
+  if (!raw) { const m = document.cookie.match('(?:^|; )wt_profile=([^;]*)'); raw = m ? decodeURIComponent(m[1]) : null; }
+  try { return (JSON.parse(raw || '{}').name || '').trim(); } catch(e) { return ''; }
+}
+function updateGreeting() {
+  const el = document.getElementById('greetTitle'); if (!el) return;
+  const g = greetingNow(), n = profileName();
+  const safe = n.replace(/[<>&"]/g, '');
+  el.innerHTML = `<span class="greet-ico ${g.icon}">${GREET_ICONS[g.icon]}</span><span>${g.text}${safe ? ', ' + safe : ''}</span>`;
+}
+setInterval(updateGreeting, 60000);
+
+function openMenu(page) { showMenuPage(page || 'main'); renderLookMenu(); document.getElementById('menuPanel').classList.add('open'); document.getElementById('menuBackdrop').classList.add('open'); }
 function closeMenu() { document.getElementById('menuPanel').classList.remove('open'); document.getElementById('menuBackdrop').classList.remove('open'); }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMenu(); });
 
@@ -905,7 +976,7 @@ async function setDay(d) {
 }
 
 async function init() {
-  applyLayout();
+  applyLayout(); updateGreeting();
   updateDayHeader();
   loadDefaultTdee();
   await Promise.all([loadFoods(), loadTodayEntries(), checkExceptionDay(), loadTodayTdee()]);
@@ -997,7 +1068,7 @@ function renderHero(eaten) {
   document.getElementById('heroKcal').textContent = Math.round(eaten).toLocaleString('de-DE');
   const budget = defaultTdee;
   const ring = document.getElementById('heroRing');
-  if (!budget) { ring.innerHTML = ''; document.getElementById('heroSub').textContent = 'Standard-Verbrauch unter Lebensmittel eintragen'; return; }
+  if (!budget) { ring.innerHTML = ''; document.getElementById('heroSub').textContent = 'Standard-Verbrauch im Menü ☰ eintragen'; return; }
   const left = budget - eaten;
   document.getElementById('heroSub').textContent = left >= 0 ? `noch ${Math.round(left).toLocaleString('de-DE')} kcal bis ${Math.round(budget).toLocaleString('de-DE')}` : `${Math.round(-left).toLocaleString('de-DE')} kcal über ${Math.round(budget).toLocaleString('de-DE')}`;
   const pct = Math.min(100, eaten / budget * 100), r = 42, c = 2 * Math.PI * r;
@@ -1694,14 +1765,46 @@ function showToast(msg, type = '') {
 </script>
 <div class="menu-backdrop" id="menuBackdrop" onclick="closeMenu()"></div>
 <aside class="menu-panel" id="menuPanel" aria-hidden="true">
-  <div class="menu-head"><span>Menü</span><button class="menu-close" onclick="closeMenu()" aria-label="Schließen">✕</button></div>
-  <div class="menu-section">Aussehen</div>
-  <div class="theme-grid" id="themeGrid"></div>
-  <label class="accent-row">Eigene Akzentfarbe <input type="color" id="accentPick" oninput="setAccent(this.value)">
-    <a href="#" onclick="setAccent(null);return false">zurücksetzen</a></label>
-  <div class="menu-foot" style="margin:-0.6rem 0 1.2rem">Gilt auch für den Gewichtstracker auf diesem Gerät.</div>
-  <div class="menu-section">Anordnung „Heute“</div>
-  <div id="layoutList"></div>
+  <div class="menu-head">
+    <button class="menu-back" id="menuBack" onclick="showMenuPage('main')" aria-label="Zurück">‹</button>
+    <span id="menuTitle">Menü</span>
+    <button class="menu-close" onclick="closeMenu()" aria-label="Schließen">✕</button>
+  </div>
+  <div class="menu-page active" data-page="main">
+    <div class="menu-section">Einstellungen</div>
+    <button class="nav-item " onclick="showMenuPage('budget')"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M12 3c2.5 3 5 5.6 5 9a5 5 0 0 1-10 0c0-1.6.6-3 1.6-4.2.3 1.4 1 2.4 2.1 2.9C10.3 8.4 11 5.6 12 3z"/></svg></span><span class="nav-txt">Standard-Verbrauch<small>Dein normaler Tagesbedarf</small></span><span class="nav-chev">›</span></button>
+    <button class="nav-item " onclick="showMenuPage('look')"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 0 18c1.1 0 1.6-.8 1.6-1.6 0-.9-.7-1.3-.7-2.2 0-1 .8-1.7 1.8-1.7H17a4 4 0 0 0 4-4c0-4.4-4-8.5-9-8.5z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10" cy="7" r="1"/><circle cx="15" cy="7.5" r="1"/></svg></span><span class="nav-txt">Aussehen<small>Farbthema und Akzentfarbe</small></span><span class="nav-chev">›</span></button>
+    <button class="nav-item " onclick="showMenuPage('layout')"><span class="nav-ico"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="6" rx="2"/><rect x="4" y="14" width="16" height="6" rx="2"/></svg></span><span class="nav-txt">Anordnung<small>Bereiche im Heute-Tab</small></span><span class="nav-chev">›</span></button>
+    <button class="nav-item " onclick="showMenuPage('connection')"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M15 7a3 3 0 1 1 0 6 3 3 0 0 1 0-6zM13 11l-8 8M8 16l2 2M6 18l2 2"/></svg></span><span class="nav-txt">Verbindung<small>Supabase und Gemini</small></span><span class="nav-chev">›</span></button>
+    <div class="menu-section">Mehr</div>
+    <a class="nav-item" href="../weight-tracker/"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M7 4v14M3 14l4 4 4-4M17 20V6M13 10l4-4 4 4"/></svg></span><span class="nav-txt">Gewichtstracker öffnen<small>Gewicht, Ziele und Profil</small></span><span class="nav-chev">↗</span></a>
+    <button class="nav-item danger" onclick="logout()"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3"/><path d="M10 17l-5-5 5-5M5 12h11"/></svg></span><span class="nav-txt">Ausloggen<small>Verbindung auf diesem Gerät trennen</small></span><span class="nav-chev">›</span></button>
+  </div>
+  <div class="menu-page" data-page="budget">
+    <div style="font-size:12px;color:var(--text-dim);margin-bottom:12px;line-height:1.5">
+      Wird automatisch fürs Defizit heute genutzt, solange du noch keinen genauen Wert eingetragen hast.
+    </div>
+    <div class="form-row">
+      <div class="form-field narrow"><label>kcal / Tag</label><input type="number" id="fDefaultTdee" placeholder="1800"></div>
+      <button class="btn-add-food" style="width:auto;align-self:flex-end;margin-top:0" onclick="saveDefaultTdee()">Speichern</button>
+    </div>
+  </div>
+  <div class="menu-page" data-page="look">
+    <div class="theme-grid" id="themeGrid"></div>
+    <label class="accent-row">Eigene Akzentfarbe <input type="color" id="accentPick" oninput="setAccent(this.value)">
+      <a href="#" onclick="setAccent(null);return false">zurücksetzen</a></label>
+    <div class="menu-foot" style="margin-top:-0.6rem">Gilt auch für den Gewichtstracker auf diesem Gerät.</div>
+  </div>
+  <div class="menu-page" data-page="layout">
+    <div id="layoutList"></div>
+    <div class="menu-foot" style="margin-top:0.4rem">Die Anordnung gilt nur für dieses Gerät.</div>
+  </div>
+  <div class="menu-page" data-page="connection">
+    <div class="conn-box"><div class="menu-foot">Supabase</div><div id="connHost" class="conn-host">–</div>
+      <div class="menu-foot" style="margin-top:0.6rem">Gemini-Key</div><div id="connGem" class="conn-host">–</div></div>
+    <button class="btn-confirm" style="width:100%;margin-top:0.8rem;padding:11px" onclick="changeConnection()">Verbindung ändern</button>
+    <div class="menu-foot" style="margin-top:0.6rem">Deine Einträge liegen in deiner Supabase-Datenbank. Die Zugangsdaten sind nur auf diesem Gerät gespeichert.</div>
+  </div>
 </aside>
 </body>
 </html>
