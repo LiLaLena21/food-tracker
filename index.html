@@ -1363,6 +1363,14 @@ function updateDayHeader() {
   document.getElementById('entriesLabel').textContent = dayName;
   document.getElementById('tdeeLabel').textContent = past ? 'Verbrauch am Vortag' : 'Verbrauch gestern';
 }
+// Datum oben antippen öffnet den Kalender. Ein unsichtbares Datumsfeld reagiert
+// in der installierten App nicht zuverlässig, deshalb öffnen wir ihn selbst.
+(function () {
+  const picker = document.getElementById('dayPicker'), wrap = document.getElementById('headerDateWrap');
+  if (!picker || !wrap || !('showPicker' in HTMLInputElement.prototype)) return;
+  picker.style.pointerEvents = 'none';
+  wrap.addEventListener('click', () => { try { picker.showPicker(); } catch (e) { picker.focus(); picker.click(); } });
+})();
 async function setDay(d) {
   if (!d || d > TODAY) d = TODAY;
   DAY = d;
