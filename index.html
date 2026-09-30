@@ -51,6 +51,15 @@
     font-weight: 400;
   }
   .header-date { font-size: 13px; color: var(--text-dim); font-weight: 300; }
+  .day-nav { display: flex; align-items: center; gap: 6px; }
+  .day-nav button { background: none; border: 1px solid var(--border); color: var(--text-dim); border-radius: 8px; width: 30px; height: 30px; font-size: 15px; cursor: pointer; }
+  .day-nav button:disabled { opacity: 0.3; cursor: default; }
+  .day-nav .header-date { cursor: pointer; position: relative; padding: 4px 2px; }
+  .day-nav input[type=date] { position: absolute; inset: 0; opacity: 0; width: 100%; cursor: pointer; }
+  .past-day-bar { display: none; align-items: center; justify-content: space-between; gap: 10px; margin: 0 0 14px; padding: 10px 14px; border-radius: 8px;
+    background: rgba(240,192,96,0.1); border: 1px solid rgba(240,192,96,0.35); font-size: 13px; color: #f0c060; }
+  .past-day-bar.visible { display: flex; }
+  .past-day-bar button { background: none; border: 1px solid rgba(240,192,96,0.5); color: #f0c060; border-radius: 6px; padding: 4px 10px; font-size: 12px; cursor: pointer; font-family: inherit; }
 
   .tabs {
     display: flex;
@@ -480,7 +489,11 @@
 
 <div class="header">
   <span class="header-title">Kalorien</span>
-  <span class="header-date" id="headerDate"></span>
+  <div class="day-nav">
+    <button onclick="shiftDay(-1)" aria-label="Vorheriger Tag">‹</button>
+    <span class="header-date"><span id="headerDate"></span><input type="date" id="dayPicker" onchange="setDay(this.value)"></span>
+    <button id="nextDayBtn" onclick="shiftDay(1)" aria-label="Nächster Tag">›</button>
+  </div>
 </div>
 
 <div class="tabs">
@@ -492,13 +505,18 @@
 <!-- TODAY -->
 <div class="section active" id="tab-today">
 
+  <div class="past-day-bar" id="pastDayBar">
+    <span id="pastDayText"></span>
+    <button onclick="setDay(TODAY)">Zu heute</button>
+  </div>
+
   <div class="exception-bar" id="exceptionBar">
     <span class="exception-label" id="exceptionLabel">Ausnahmetag</span>
     <button class="toggle" id="exceptionToggle" onclick="toggleException()"></button>
   </div>
 
   <div class="tdee-bar">
-    <span class="tdee-label">Verbrauch gestern</span>
+    <span class="tdee-label" id="tdeeLabel">Verbrauch gestern</span>
     <input type="number" class="tdee-input" id="tdeeInput" placeholder="1800" min="500" max="5000">
     <span class="tdee-unit">kcal</span>
     <button class="btn-tdee" onclick="saveTdee()">Speichern</button>
@@ -544,7 +562,7 @@
     </div>
   </div>
 
-  <div class="entries-label">Heute</div>
+  <div class="entries-label" id="entriesLabel">Heute</div>
   <div class="entry-list" id="entryList"><div class="empty-state">Noch nichts eingetragen.</div></div>
 
   <div class="totals-grid">
@@ -678,11 +696,39 @@ function localDateStr(d = new Date()) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 const TODAY = localDateStr();
+// DAY = der Tag, der im Heute-Tab angezeigt und bearbeitet wird (zum Nachtragen auch frühere Tage)
+let DAY = TODAY;
 let todayEntries = [], allFoods = [], isException = false;
 let pendingEntry = null, pendingIsNewFood = false, todayTdee = null, defaultTdee = null, tdeeIsExplicit = false;
 
+function updateDayHeader() {
+  document.getElementById('headerDate').textContent = formatDateFull(DAY);
+  const picker = document.getElementById('dayPicker');
+  picker.value = DAY; picker.max = TODAY;
+  document.getElementById('nextDayBtn').disabled = DAY >= TODAY;
+  const bar = document.getElementById('pastDayBar');
+  bar.classList.toggle('visible', DAY !== TODAY);
+  const diff = Math.round((new Date(TODAY + 'T12:00:00') - new Date(DAY + 'T12:00:00')) / 86400000);
+  document.getElementById('pastDayText').textContent = diff === 1 ? 'Du trägst für gestern nach.' : `Du trägst für ${formatDateShort(DAY)} nach.`;
+  const dayName = DAY === TODAY ? 'Heute' : (diff === 1 ? 'Gestern' : formatDateShort(DAY));
+  document.querySelector('.tab').textContent = dayName;
+  document.getElementById('entriesLabel').textContent = dayName;
+  document.getElementById('tdeeLabel').textContent = DAY === TODAY ? 'Verbrauch gestern' : 'Verbrauch am Vortag';
+}
+async function setDay(d) {
+  if (!d || d > TODAY) d = TODAY;
+  DAY = d;
+  updateDayHeader();
+  await Promise.all([loadTodayEntries(), checkExceptionDay(), loadTodayTdee()]);
+  renderEntries(); renderTotals();
+}
+function shiftDay(n) {
+  const d = new Date(DAY + 'T12:00:00'); d.setDate(d.getDate() + n);
+  setDay(localDateStr(d));
+}
+
 async function init() {
-  document.getElementById('headerDate').textContent = formatDateFull(TODAY);
+  updateDayHeader();
   loadDefaultTdee();
   await Promise.all([loadFoods(), loadTodayEntries(), checkExceptionDay(), loadTodayTdee()]);
   renderEntries(); renderTotals();
@@ -745,7 +791,7 @@ async function deleteFood(id) {
 
 // TODAY ENTRIES
 async function loadTodayEntries() {
-  todayEntries = await sbFetch(`log_entries?date=eq.${TODAY}&order=created_at`) || [];
+  todayEntries = await sbFetch(`log_entries?date=eq.${DAY}&order=created_at`) || [];
 }
 function renderEntries() {
   const el = document.getElementById('entryList');
@@ -776,7 +822,8 @@ function renderDeficitBanner(eaten) {
   banner.classList.add('visible');
   banner.classList.toggle('good', isGood);
   banner.classList.toggle('bad', !isGood);
-  document.getElementById('deficitLabel').textContent = isGood ? 'Defizit heute' : 'Überschuss heute';
+  const dayWord = DAY === TODAY ? 'heute' : 'an dem Tag';
+  document.getElementById('deficitLabel').textContent = (isGood ? 'Defizit ' : 'Überschuss ') + dayWord;
   document.getElementById('deficitSub').textContent = `${Math.round(eaten)} gegessen · ${Math.round(effectiveTdee)} Standard-Verbrauch`;
   document.getElementById('deficitValue').textContent = (isGood ? '−' : '+') + Math.abs(Math.round(deficit)) + ' kcal';
 }
@@ -790,8 +837,9 @@ async function deleteEntry(id) {
 // It represents the burn from YESTERDAY.
 // In weekly view: tdee row.date D covers log_entries.date D-1.
 async function loadTodayTdee() {
-  const result = await sbFetch(`tdee_entries?date=eq.${TODAY}`) || [];
+  const result = await sbFetch(`tdee_entries?date=eq.${DAY}`) || [];
   todayTdee = result.length ? parseFloat(result[0].tdee) : null;
+  document.getElementById('tdeeInput').value = '';
   if (todayTdee) {
     document.getElementById('tdeeInput').value = Math.round(todayTdee);
   } else if (defaultTdee) {
@@ -802,7 +850,7 @@ async function loadTodayTdee() {
 async function saveTdee() {
   const val = parseFloat(document.getElementById('tdeeInput').value);
   if (!val || val < 500) { showToast('Bitte einen gültigen Verbrauch eingeben.', 'err'); return; }
-  await sbFetch('tdee_entries', 'POST', { date: TODAY, tdee: val },
+  await sbFetch('tdee_entries', 'POST', { date: DAY, tdee: val },
     { 'Prefer': 'resolution=merge-duplicates,return=representation' });
   todayTdee = val;
   renderTotals();
@@ -832,7 +880,7 @@ function saveDefaultTdee() {
 
 // EXCEPTION
 async function checkExceptionDay() {
-  const result = await sbFetch(`exception_days?date=eq.${TODAY}`) || [];
+  const result = await sbFetch(`exception_days?date=eq.${DAY}`) || [];
   isException = result.length > 0; updateExceptionUI();
 }
 function updateExceptionUI() {
@@ -844,8 +892,8 @@ function updateExceptionUI() {
   label.textContent = isException ? 'Ausnahmetag aktiv' : 'Ausnahmetag';
 }
 async function toggleException() {
-  if (isException) { await sbFetch(`exception_days?date=eq.${TODAY}`, 'DELETE'); isException = false; }
-  else { await sbFetch('exception_days', 'POST', { date: TODAY }); isException = true; }
+  if (isException) { await sbFetch(`exception_days?date=eq.${DAY}`, 'DELETE'); isException = false; }
+  else { await sbFetch('exception_days', 'POST', { date: DAY }); isException = true; }
   updateExceptionUI();
 }
 
@@ -1082,7 +1130,7 @@ async function confirmEntry() {
       }
       await loadFoods();
     }
-    await sbFetch('log_entries', 'POST', { date: TODAY, food_name: foodName, amount_g: amount, kcal, carbs, protein, sugar });
+    await sbFetch('log_entries', 'POST', { date: DAY, food_name: foodName, amount_g: amount, kcal, carbs, protein, sugar });
   } catch (e) {
     console.error(e);
     showToast(`Fehler beim Speichern: ${e.message}`, 'err');
