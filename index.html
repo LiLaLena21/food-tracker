@@ -660,10 +660,11 @@
 
 <div class="setup-overlay" id="setupOverlay" style="display:none">
   <div class="setup-box">
-    <div class="setup-title">Fast geschafft</div>
-    <div class="setup-sub">Zum Erkennen von Essen und zum Scannen braucht die App einmal deinen Gemini API-Key. Er wird in deinem Profil gespeichert.</div>
+    <div class="setup-title">Eigener Gemini-Key</div>
+    <div class="setup-sub">Nicht nötig: Ohne eigenen Key läuft das Erkennen und Scannen über den gemeinsamen Zugang. Wenn du trotzdem deinen eigenen nutzen willst, trag ihn hier ein. Leer lassen und speichern entfernt ihn wieder.</div>
     <div class="setup-field"><label>Gemini API Key</label><input type="password" id="cfgGemini" placeholder="AIza..."></div>
     <button class="btn-setup" onclick="saveConfig()">Speichern</button>
+    <button class="btn-ghost-wide" style="margin-top:8px" onclick="document.getElementById('setupOverlay').style.display='none'">Abbrechen</button>
     <div class="setup-error" id="setupError"></div>
   </div>
 </div>
@@ -1174,13 +1175,12 @@ let SB_URL = '', SB_KEY = '', GEMINI_KEY = '';
 
 function saveConfig() {
   const gem = document.getElementById('cfgGemini').value.trim();
-  if (!gem) { showSetupError('Bitte den Key eintragen.'); return; }
-  localStorage.setItem('gemini_key', gem);
+  if (gem) localStorage.setItem('gemini_key', gem); else localStorage.removeItem('gemini_key');
   GEMINI_KEY = gem;
   const first = document.getElementById('setupOverlay').dataset.first === '1';
   document.getElementById('setupOverlay').style.display = 'none';
   if (first) { document.getElementById('setupOverlay').dataset.first = ''; init(); }
-  else showToast('Gemini-Key gespeichert.', 'ok');
+  else showToast(gem ? 'Eigener Gemini-Key gespeichert.' : 'Es wird wieder der gemeinsame Zugang genutzt.', 'ok');
 }
 function showSetupError(msg) {
   const el = document.getElementById('setupError');
@@ -1263,7 +1263,7 @@ function showMenuPage(id) {
   if (id === 'account') {
     const g = lsGet('gemini_key') || '';
     document.getElementById('accMail').textContent = (Acct.user && Acct.user.email) || '–';
-    document.getElementById('connGem').textContent = g ? '••••••' + g.slice(-4) : 'fehlt';
+    document.getElementById('connGem').textContent = g ? 'eigener Key ••••' + g.slice(-4) : 'gemeinsamer Zugang';
     document.getElementById('accImport').style.display = acctOldSources().length ? '' : 'none';
   }
 }
@@ -1672,14 +1672,23 @@ function tryLocalItems(input) {
   return items;
 }
 
+// Mit eigenem Key direkt zu Gemini, sonst über die gemeinsame Funktion in Supabase
+// (dort liegt der Key sicher auf dem Server, nur eingeloggte Nutzer dürfen sie aufrufen)
 async function callGemini(parts) {
-  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{ parts }],
-      generationConfig: { responseMimeType: 'application/json', temperature: 0.1 }
-    })
-  });
+  let res;
+  if (GEMINI_KEY) {
+    res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contents: [{ parts }], generationConfig: { responseMimeType: 'application/json', temperature: 0.1 } })
+    });
+  } else {
+    const { data: { session } } = await Acct.sb.auth.getSession();
+    res = await fetch(`${SB_CENTRAL_URL}/functions/v1/gemini`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': SB_CENTRAL_KEY, 'Authorization': `Bearer ${session && session.access_token}` },
+      body: JSON.stringify({ parts })
+    });
+  }
   if (!res.ok) throw new Error(`Gemini HTTP ${res.status}`);
   const data = await res.json();
   if (data.error) throw new Error(data.error.message);
@@ -2168,8 +2177,7 @@ function ftStart() {
   SB_URL = SB_CENTRAL_URL; SB_KEY = SB_CENTRAL_KEY;
   GEMINI_KEY = lsGet('gemini_key') || '';
   applyTheme();
-  if (GEMINI_KEY) init();
-  else { const o = document.getElementById('setupOverlay'); o.dataset.first = '1'; o.style.display = ''; }
+  init();
 }
 acctBoot(ftStart);
 </script>
@@ -2185,7 +2193,7 @@ acctBoot(ftStart);
     <button class="nav-item " onclick="showMenuPage('budget')"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M12 3c2.5 3 5 5.6 5 9a5 5 0 0 1-10 0c0-1.6.6-3 1.6-4.2.3 1.4 1 2.4 2.1 2.9C10.3 8.4 11 5.6 12 3z"/></svg></span><span class="nav-txt">Standard-Verbrauch<small>Dein normaler Tagesbedarf</small></span><span class="nav-chev">›</span></button>
     <button class="nav-item " onclick="showMenuPage('look')"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 0 18c1.1 0 1.6-.8 1.6-1.6 0-.9-.7-1.3-.7-2.2 0-1 .8-1.7 1.8-1.7H17a4 4 0 0 0 4-4c0-4.4-4-8.5-9-8.5z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10" cy="7" r="1"/><circle cx="15" cy="7.5" r="1"/></svg></span><span class="nav-txt">Aussehen<small>Farbthema und Akzentfarbe</small></span><span class="nav-chev">›</span></button>
     <button class="nav-item " onclick="showMenuPage('layout')"><span class="nav-ico"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="6" rx="2"/><rect x="4" y="14" width="16" height="6" rx="2"/></svg></span><span class="nav-txt">Anordnung<small>Bereiche im Heute-Tab</small></span><span class="nav-chev">›</span></button>
-    <button class="nav-item " onclick="showMenuPage('account')"><span class="nav-ico"><svg viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></span><span class="nav-txt">Konto<small>E-Mail, Passwort, Gemini-Key</small></span><span class="nav-chev">›</span></button>
+    <button class="nav-item " onclick="showMenuPage('account')"><span class="nav-ico"><svg viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></span><span class="nav-txt">Konto<small>E-Mail, Passwort, Gemini</small></span><span class="nav-chev">›</span></button>
     <div class="menu-section">Mehr</div>
     <button class="nav-item" id="installItem" style="display:none" onclick="pwaInstall()"><span class="nav-ico"><svg viewBox="0 0 24 24"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M12 7v7M9 11l3 3 3-3M10.5 18.5h3"/></svg></span><span class="nav-txt">Als App installieren<small>Mit eigenem Symbol auf dem Startbildschirm</small></span><span class="nav-chev">›</span></button>
     <a class="nav-item" href="../weight-tracker/"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M7 4v14M3 14l4 4 4-4M17 20V6M13 10l4-4 4 4"/></svg></span><span class="nav-txt">Gewichtstracker öffnen<small>Gewicht, Ziele und Profil</small></span><span class="nav-chev">↗</span></a>
@@ -2212,9 +2220,9 @@ acctBoot(ftStart);
   </div>
   <div class="menu-page" data-page="account">
     <div class="conn-box"><div class="menu-foot">Angemeldet als</div><div id="accMail" class="conn-host">–</div>
-      <div class="menu-foot" style="margin-top:0.6rem">Gemini-Key</div><div id="connGem" class="conn-host">–</div></div>
+      <div class="menu-foot" style="margin-top:0.6rem">Gemini</div><div id="connGem" class="conn-host">–</div></div>
     <button class="btn-confirm" style="width:100%;margin-top:0.8rem;padding:11px" onclick="closeMenu();acctShow('setpw',{mode:'change'})">Passwort ändern</button>
-    <button class="btn-ghost-wide" style="margin-top:0.6rem" onclick="changeGemini()">Gemini-Key ändern</button>
+    <button class="btn-ghost-wide" style="margin-top:0.6rem" onclick="changeGemini()">Eigenen Gemini-Key festlegen</button>
     <button class="btn-ghost-wide" id="accImport" style="margin-top:0.6rem;display:none" onclick="closeMenu();acctShow('import')">Alte Daten übernehmen</button>
     <div class="menu-foot" style="margin-top:0.8rem">Deine Einträge und Einstellungen liegen in deinem Profil. Du kannst dich damit auf jedem Gerät und in beiden Apps einloggen.</div>
   </div>
