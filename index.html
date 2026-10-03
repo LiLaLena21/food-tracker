@@ -1673,15 +1673,20 @@ function tryLocalItems(input) {
 }
 
 // Mit eigenem Key direkt zu Gemini, sonst über die gemeinsame Funktion in Supabase
-// (dort liegt der Key sicher auf dem Server, nur eingeloggte Nutzer dürfen sie aufrufen)
+// (dort liegt der Key sicher auf dem Server, nur eingeloggte Nutzer dürfen sie aufrufen).
+// Ist das Kontingent eines Modells aufgebraucht (HTTP 429), geht es mit dem nächsten Modell weiter,
+// zum Schluss über die gemeinsame Funktion.
+const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.0-flash'];
 async function callGemini(parts) {
-  let res;
+  let res = null;
+  const body = JSON.stringify({ contents: [{ parts }], generationConfig: { responseMimeType: 'application/json', temperature: 0.1 } });
   if (GEMINI_KEY) {
-    res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contents: [{ parts }], generationConfig: { responseMimeType: 'application/json', temperature: 0.1 } })
-    });
-  } else {
+    for (const m of GEMINI_MODELS) {
+      res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${GEMINI_KEY}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body });
+      if (res.status !== 429 && res.status !== 404 && res.status !== 503) break;
+    }
+  }
+  if (!res || res.status === 429 || res.status === 404 || res.status === 503) {
     const { data: { session } } = await Acct.sb.auth.getSession();
     res = await fetch(`${SB_CENTRAL_URL}/functions/v1/gemini`, {
       method: 'POST',
@@ -1689,6 +1694,7 @@ async function callGemini(parts) {
       body: JSON.stringify({ parts })
     });
   }
+  if (res.status === 429) throw new Error('Gemini ist für heute ausgelastet. Bitte später nochmal versuchen oder die Lebensmittel aus deiner Liste nehmen.');
   if (!res.ok) throw new Error(`Gemini HTTP ${res.status}`);
   const data = await res.json();
   if (data.error) throw new Error(data.error.message);
