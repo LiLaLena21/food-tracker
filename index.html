@@ -1844,9 +1844,19 @@ async function readListFromImage(inputEl) {
   btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>Screenshot wird gelesen…';
   try {
     const b64 = await fileToJpegBase64(file);
-    const prompt = `Auf dem Bild steht eine Liste von Lebensmitteln mit Mengen (z.B. ein Chat-Screenshot).
-Schreibe die Liste exakt ab, eine Zutat pro Zeile im Format "<Menge><Einheit> <Name>", z.B. "250g Quark".
+    const prompt = `Das Bild zeigt entweder
+A) eine geschriebene Liste von Lebensmitteln mit Mengen (z.B. ein Chat-Screenshot oder Notizen), oder
+B) ein Foto von einer Mahlzeit (Teller, Tablett, Schüssel, Flugzeug- oder Kantinenessen).
+
+Bei A: Schreibe die Liste exakt ab, eine Zutat pro Zeile im Format "<Menge><Einheit> <Name>", z.B. "250g Quark".
 Übernimm Abkürzungen und Mengen genau so, wie sie dastehen. Ignoriere Uhrzeiten, Emojis und sonstigen Text.
+
+Bei B: Zerlege die Mahlzeit in ihre sichtbaren Bestandteile und schätze realistisch die Menge in Gramm.
+Orientiere dich an Tellergröße, Besteck und Verpackungen. Eine Zeile pro Bestandteil im Format "<Menge>g <Name>",
+z.B. "150g Fisch in Tomatensoße", "80g Blumenkohl gedämpft", "100g Schokopudding". Soßen und Dressings als eigene Zeile,
+wenn sie nennenswert sind. Verpackte, geschlossene Sachen (Brötchen in Folie, Butter, Wasser) nur aufnehmen, wenn sie offensichtlich gegessen werden.
+Getränke ohne Kalorien weglassen.
+
 Antworte nur mit JSON: {"lines":["...","..."]}`;
     const r = await callGemini([{ inline_data: { mime_type: 'image/jpeg', data: b64 } }, { text: prompt }]);
     const lines = (r.lines || []).map(l => String(l).trim()).filter(Boolean);
@@ -1857,7 +1867,7 @@ Antworte nur mit JSON: {"lines":["...","..."]}`;
     await parseFood();
   } catch (e) {
     console.error(e);
-    showToast(`Screenshot nicht lesbar: ${e.message}`, 'err');
+    showToast(`Bild nicht lesbar: ${e.message}`, 'err');
   } finally {
     btn.disabled = false; btn.textContent = 'Aus Screenshot oder Foto einlesen';
   }

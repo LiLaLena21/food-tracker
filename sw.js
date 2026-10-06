@@ -1,5 +1,5 @@
 // Offline-Hilfe: Seite immer frisch aus dem Netz, bei fehlendem Netz die letzte Version
-const CACHE = 'ft-v5';
+const CACHE = 'ft-v6';
 self.addEventListener('install', e => {
   self.skipWaiting();
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(['./', './manifest.webmanifest', './icons/icon-192.png'])));
