@@ -857,7 +857,7 @@ const SB_CENTRAL_URL = 'https://kpxsnjrdrawjmsdcefxz.supabase.co';
 const SB_CENTRAL_KEY = 'sb_publishable_0GkNPLFsZ3rN3UeBEC2lRA_2zS5UYgx';
 // Einstellungen, die im Profil gespeichert werden und so auf jedem Gerät gleich sind
 const SYNC_KEYS = ['wt_profile', 'wt_goal1', 'wt_goal2', 'wt_rate', 'wt_measure_on', 'wt_measure_fields', 'wt_measure_pos',
-  'wt_kcal_on', 'wt_layout', 'wt_theme', 'wt_accent', 'ft_layout', 'default_tdee', 'gemini_key', 'kcal_source', 'import_done'];
+  'wt_kcal_on', 'wt_layout', 'wt_theme', 'wt_accent', 'ft_layout', 'default_tdee', 'kcal_goal', 'gemini_key', 'kcal_source', 'import_done'];
 const Acct = { sb: null, user: null, uid: null, applying: false, timer: null, onReady: null };
 
 // Jede Änderung an einer dieser Einstellungen landet (kurz verzögert) im Profil
@@ -1253,13 +1253,16 @@ function renderLookMenu() {
     <button onclick="moveWin(${i},-1)" ${i === 0 ? 'disabled' : ''}>↑</button><button onclick="moveWin(${i},1)" ${i === l.length - 1 ? 'disabled' : ''}>↓</button>
     <button class="vis" onclick="toggleWin(${i})">${x.hidden ? 'aus' : 'an'}</button></div>`).join('');
 }
-const MENU_TITLES = { main: 'Menü', budget: 'Standard-Verbrauch', look: 'Aussehen', layout: 'Anordnung', account: 'Konto' };
+const MENU_TITLES = { main: 'Menü', budget: 'Ziel & Verbrauch', look: 'Aussehen', layout: 'Anordnung', account: 'Konto' };
 function showMenuPage(id) {
   document.querySelectorAll('.menu-page').forEach(p => p.classList.toggle('active', p.dataset.page === id));
   document.getElementById('menuTitle').textContent = MENU_TITLES[id] || 'Menü';
   document.getElementById('menuPanel').classList.toggle('sub', id !== 'main');
   if (id === 'look' || id === 'layout') renderLookMenu();
-  if (id === 'budget' && defaultTdee) document.getElementById('fDefaultTdee').value = Math.round(defaultTdee);
+  if (id === 'budget') {
+    if (defaultTdee) document.getElementById('fDefaultTdee').value = Math.round(defaultTdee);
+    document.getElementById('fKcalGoal').value = kcalGoal ? Math.round(kcalGoal) : '';
+  }
   if (id === 'account') {
     const g = lsGet('gemini_key') || '';
     document.getElementById('accMail').textContent = (Acct.user && Acct.user.email) || '–';
@@ -1349,7 +1352,7 @@ const TODAY = localDateStr();
 // DAY = der Tag, der im Heute-Tab angezeigt und bearbeitet wird (zum Nachtragen auch frühere Tage)
 let DAY = TODAY;
 let todayEntries = [], allFoods = [], isException = false;
-let pendingEntry = null, pendingIsNewFood = false, todayTdee = null, defaultTdee = null, tdeeIsExplicit = false;
+let pendingEntry = null, pendingIsNewFood = false, todayTdee = null, defaultTdee = null, kcalGoal = null, tdeeIsExplicit = false;
 
 function updateDayHeader() {
   document.getElementById('headerDate').textContent = formatDateFull(DAY);
@@ -1465,14 +1468,15 @@ function renderTotals() {
   renderDeficitBanner(eaten);
   renderHero(eaten);
 }
-// Übersicht: gegessen groß, Ring = Anteil am Standard-Verbrauch
+// Übersicht: gegessen groß, Ring = Anteil am Tagesziel (ohne Ziel: am Ø-Verbrauch)
 function renderHero(eaten) {
   const past = typeof DAY !== 'undefined' && DAY !== TODAY;
   document.getElementById('heroLabel').textContent = past ? 'Gegessen an dem Tag' : 'Gegessen heute';
   document.getElementById('heroKcal').textContent = Math.round(eaten).toLocaleString('de-DE');
-  const budget = defaultTdee;
+  const budget = kcalGoal || defaultTdee;
+  const ringWord = kcalGoal ? 'vom Ziel' : 'vom Verbrauch';
   const ring = document.getElementById('heroRing');
-  if (!budget) { ring.innerHTML = ''; document.getElementById('heroSub').textContent = 'Standard-Verbrauch im Menü ☰ eintragen'; return; }
+  if (!budget) { ring.innerHTML = ''; document.getElementById('heroSub').textContent = 'Tagesziel im Menü ☰ eintragen'; return; }
   const left = budget - eaten;
   document.getElementById('heroSub').textContent = left >= 0 ? `noch ${Math.round(left).toLocaleString('de-DE')} kcal bis ${Math.round(budget).toLocaleString('de-DE')}` : `${Math.round(-left).toLocaleString('de-DE')} kcal über ${Math.round(budget).toLocaleString('de-DE')}`;
   const pct = Math.min(100, eaten / budget * 100), r = 42, c = 2 * Math.PI * r;
@@ -1480,7 +1484,7 @@ function renderHero(eaten) {
   ring.innerHTML = `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="${r}" fill="none" stroke="var(--border)" stroke-width="9"/>
     <circle cx="50" cy="50" r="${r}" fill="none" stroke="${over ? 'var(--red)' : 'var(--accent)'}" stroke-width="9" stroke-linecap="round"
       stroke-dasharray="${c.toFixed(1)}" stroke-dashoffset="${(c * (1 - pct / 100)).toFixed(1)}"/></svg>
-    <div class="ring-txt"><div class="ring-pct">${Math.round(eaten / budget * 100)} %</div><div class="ring-sub">vom Verbrauch</div></div>`;
+    <div class="ring-txt"><div class="ring-pct">${Math.round(eaten / budget * 100)} %</div><div class="ring-sub">${ringWord}</div></div>`;
 }
 function renderDeficitBanner(eaten) {
   const banner = document.getElementById('deficitBanner');
@@ -1495,7 +1499,7 @@ function renderDeficitBanner(eaten) {
   banner.classList.toggle('bad', !isGood);
   const dayWord = DAY === TODAY ? 'heute' : 'an dem Tag';
   document.getElementById('deficitLabel').textContent = (isGood ? 'Defizit ' : 'Überschuss ') + dayWord;
-  document.getElementById('deficitSub').textContent = `${Math.round(eaten)} gegessen · ${Math.round(effectiveTdee)} Standard-Verbrauch`;
+  document.getElementById('deficitSub').textContent = `${Math.round(eaten)} gegessen · ${Math.round(effectiveTdee)} Ø-Verbrauch`;
   document.getElementById('deficitValue').textContent = (isGood ? '−' : '+') + Math.abs(Math.round(deficit)) + ' kcal';
 }
 async function deleteEntry(id) {
@@ -1532,6 +1536,8 @@ async function saveTdee() {
 function loadDefaultTdee() {
   const stored = localStorage.getItem('default_tdee');
   defaultTdee = stored ? parseFloat(stored) : null;
+  const g = parseFloat(localStorage.getItem('kcal_goal'));
+  kcalGoal = g > 0 ? g : null;
   if (defaultTdee) {
     const field = document.getElementById('fDefaultTdee');
     if (field) field.value = Math.round(defaultTdee);
@@ -1539,14 +1545,18 @@ function loadDefaultTdee() {
 }
 function saveDefaultTdee() {
   const val = parseFloat(document.getElementById('fDefaultTdee').value);
-  if (!val || val < 500) { showToast('Bitte einen gültigen Standard-Verbrauch eingeben.', 'err'); return; }
+  const gRaw = document.getElementById('fKcalGoal').value.trim(), goal = parseFloat(gRaw);
+  if (!val || val < 500) { showToast('Bitte einen gültigen Ø-Verbrauch eingeben.', 'err'); return; }
+  if (gRaw && (!goal || goal < 500)) { showToast('Bitte ein gültiges Tagesziel eingeben.', 'err'); return; }
   localStorage.setItem('default_tdee', val);
   defaultTdee = val;
+  if (goal) localStorage.setItem('kcal_goal', goal); else localStorage.removeItem('kcal_goal');
+  kcalGoal = goal || null;
   if (!todayTdee) {
     document.getElementById('tdeeInput').placeholder = `${Math.round(val)} (Standard)`;
   }
   renderTotals();
-  showToast('Standard-Verbrauch gespeichert.', 'ok');
+  showToast('Gespeichert.', 'ok');
 }
 
 // EXCEPTION
@@ -2206,7 +2216,7 @@ acctBoot(ftStart);
   </div>
   <div class="menu-page active" data-page="main">
     <div class="menu-section">Einstellungen</div>
-    <button class="nav-item " onclick="showMenuPage('budget')"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M12 3c2.5 3 5 5.6 5 9a5 5 0 0 1-10 0c0-1.6.6-3 1.6-4.2.3 1.4 1 2.4 2.1 2.9C10.3 8.4 11 5.6 12 3z"/></svg></span><span class="nav-txt">Standard-Verbrauch<small>Dein normaler Tagesbedarf</small></span><span class="nav-chev">›</span></button>
+    <button class="nav-item " onclick="showMenuPage('budget')"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M12 3c2.5 3 5 5.6 5 9a5 5 0 0 1-10 0c0-1.6.6-3 1.6-4.2.3 1.4 1 2.4 2.1 2.9C10.3 8.4 11 5.6 12 3z"/></svg></span><span class="nav-txt">Ziel & Verbrauch<small>Tagesziel und normaler Verbrauch</small></span><span class="nav-chev">›</span></button>
     <button class="nav-item " onclick="showMenuPage('look')"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 0 18c1.1 0 1.6-.8 1.6-1.6 0-.9-.7-1.3-.7-2.2 0-1 .8-1.7 1.8-1.7H17a4 4 0 0 0 4-4c0-4.4-4-8.5-9-8.5z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10" cy="7" r="1"/><circle cx="15" cy="7.5" r="1"/></svg></span><span class="nav-txt">Aussehen<small>Farbthema und Akzentfarbe</small></span><span class="nav-chev">›</span></button>
     <button class="nav-item " onclick="showMenuPage('layout')"><span class="nav-ico"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="6" rx="2"/><rect x="4" y="14" width="16" height="6" rx="2"/></svg></span><span class="nav-txt">Anordnung<small>Bereiche im Heute-Tab</small></span><span class="nav-chev">›</span></button>
     <button class="nav-item " onclick="showMenuPage('account')"><span class="nav-ico"><svg viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></span><span class="nav-txt">Konto<small>E-Mail, Passwort, Gemini</small></span><span class="nav-chev">›</span></button>
@@ -2217,10 +2227,12 @@ acctBoot(ftStart);
   </div>
   <div class="menu-page" data-page="budget">
     <div style="font-size:12px;color:var(--text-dim);margin-bottom:12px;line-height:1.5">
-      Wird automatisch fürs Defizit heute genutzt, solange du noch keinen genauen Wert eingetragen hast.
+      <b>Tagesziel:</b> so viel willst du höchstens essen, das zeigt der Ring.<br>
+      <b>Ø-Verbrauch:</b> was du an einem normalen Tag verbrauchst. Wird fürs Defizit genutzt, solange kein genauer Wert eingetragen ist.
     </div>
     <div class="form-row">
-      <div class="form-field narrow"><label>kcal / Tag</label><input type="number" id="fDefaultTdee" placeholder="1800"></div>
+      <div class="form-field narrow"><label>Ziel (kcal)</label><input type="number" id="fKcalGoal" placeholder="1400"></div>
+      <div class="form-field narrow"><label>Ø-Verbrauch</label><input type="number" id="fDefaultTdee" placeholder="1800"></div>
       <button class="btn-add-food" style="width:auto;align-self:flex-end;margin-top:0" onclick="saveDefaultTdee()">Speichern</button>
     </div>
   </div>
