@@ -1696,6 +1696,7 @@ function parseLooseJson(raw) {
   const fixed = m[0]
     .replace(/\/\/[^\n"]*$/gm, '')                       // // Kommentare am Zeilenende
     .replace(/\/\*[\s\S]*?\*\//g, '')                     // /* Kommentare */
+    .replace(/:\s*(-?\d+),(\d+)(?=\s*[,}\]])/g, ':$1.$2')   // deutsches Dezimalkomma (17,5)
     .replace(/,\s*([\]}])/g, '$1')                       // Komma vor ] oder }
     .replace(/([{,]\s*)([A-Za-z_][\w]*)\s*:/g, '$1"$2":') // Schlüssel ohne Anführungszeichen
     .replace(/:\s*'([^']*)'/g, ': "$1"')                  // Werte in einfachen Anführungszeichen
@@ -1753,6 +1754,8 @@ Regeln:
 3. Mengen immer in Gramm angeben. ml ≈ g. Bei Scoop/Stück/Portion eines DB-Eintrags: Anzahl × Portion. Bei Eiern ohne Gewicht: 1 Ei ≈ 55 g.
 4. Nur wenn KEIN DB-Eintrag passt: "db_name" null und "per100" mit realistischen Nährwerten pro 100 g. Beachte Markennamen (z.B. More Nutrition, Kühne). Unbekannte Salatwürzen/Essig-Dressings sind meist sehr kalorienarm.
 5. "name" ist ein kurzer deutscher Name der Zutat.
+6. Lass keine Zutat aus der Eingabe weg, auch nicht die erste.
+7. Zahlen im JSON immer mit Punkt als Dezimaltrenner (17.5, nicht 17,5).
 
 Antworte nur mit JSON in genau diesem Format:
 {"items":[{"name":"Magerquark","amount_g":250,"db_name":"Magerquark Kaufland","per100":null},{"name":"Gurke","amount_g":135,"db_name":null,"per100":{"kcal":12,"carbs":1.8,"protein":0.6,"sugar":1.7}}]}`;
