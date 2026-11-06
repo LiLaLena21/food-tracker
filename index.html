@@ -1696,16 +1696,32 @@ function parseLooseJson(raw) {
   const fixed = m[0]
     .replace(/\/\/[^\n"]*$/gm, '')                       // // Kommentare am Zeilenende
     .replace(/\/\*[\s\S]*?\*\//g, '')                     // /* Kommentare */
+    .replace(/#[^\n"]*$/gm, '')                          // # Kommentare
+    .replace(/([{,]\s*)'([^']*)'\s*:/g, '$1"$2":')        // Schlüssel in einfachen Anführungszeichen
     .replace(/:\s*(-?\d+),(\d+)(?=\s*[,}\]])/g, ':$1.$2')   // deutsches Dezimalkomma (17,5)
+    .replace(/:\s*(\d+(?:\.\d+)?)\s*([*+])\s*(\d+(?:\.\d+)?)/g, (m, x, op, y) => ': ' + (op === '*' ? x * y : +x + +y)) // 2 * 55
     .replace(/,\s*([\]}])/g, '$1')                       // Komma vor ] oder }
     .replace(/([{,]\s*)([A-Za-z_][\w]*)\s*:/g, '$1"$2":') // Schlüssel ohne Anführungszeichen
     .replace(/:\s*'([^']*)'/g, ': "$1"')                  // Werte in einfachen Anführungszeichen
     .replace(/}\s*{/g, '},{');                           // fehlendes Komma zwischen Objekten
-  return JSON.parse(fixed);
+  try { return JSON.parse(fixed); }
+  catch (e) {
+    // Fehlerstelle zeigen, damit man sieht, was Gemini geschrieben hat
+    const pos = +((e.message.match(/position (\d+)/) || [])[1]);
+    const near = isNaN(pos) ? fixed.slice(0, 80) : fixed.slice(Math.max(0, pos - 50), pos + 30);
+    console.error('Gemini-Antwort nicht lesbar:', fixed);
+    const err = new SyntaxError('Antwort von Gemini nicht lesbar bei: …' + near.replace(/\s+/g, ' ') + '…');
+    throw err;
+  }
 }
 async function callGemini(parts) {
   try { return await callGeminiOnce(parts); }
-  catch (e) { if (!(e instanceof SyntaxError)) throw e; return await callGeminiOnce(parts); }
+  catch (e) {
+    if (!(e instanceof SyntaxError)) throw e;
+    // zweiter Versuch mit dem ausdrücklichen Hinweis auf gültiges JSON
+    const strict = parts.map(p => p.text ? { text: p.text + '\n\nWICHTIG: Gib ausschließlich gültiges JSON zurück: Schlüssel in doppelten Anführungszeichen, Dezimalpunkt statt Komma, keine Kommentare, keine Rechnungen.' } : p);
+    return await callGeminiOnce(strict);
+  }
 }
 async function callGeminiOnce(parts) {
   let res = null;
