@@ -1718,6 +1718,7 @@ async function callGemini(parts) {
   try { return await callGeminiOnce(parts); }
   catch (e) {
     if (!(e instanceof SyntaxError)) throw e;
+    window.__gemFail = e.message;   // zur Fehlersuche: was hat Gemini kaputt geschrieben?
     // zweiter Versuch mit dem ausdrücklichen Hinweis auf gültiges JSON
     const strict = parts.map(p => p.text ? { text: p.text + '\n\nWICHTIG: Gib ausschließlich gültiges JSON zurück: Schlüssel in doppelten Anführungszeichen, Dezimalpunkt statt Komma, keine Kommentare, keine Rechnungen.' } : p);
     return await callGeminiOnce(strict);
@@ -1776,8 +1777,18 @@ Regeln:
 Antworte nur mit JSON in genau diesem Format:
 {"items":[{"name":"Magerquark","amount_g":250,"db_name":"Magerquark Kaufland","per100":null},{"name":"Gurke","amount_g":135,"db_name":null,"per100":{"kcal":12,"carbs":1.8,"protein":0.6,"sugar":1.7}}]}`;
 
-  const parsed = await callGemini([{ text: prompt }]);
-  const list = Array.isArray(parsed) ? parsed : parsed.items;
+  window.__gemFail = null;
+  const asList = r => Array.isArray(r) ? r : (r && r.items);
+  let list = asList(await callGemini([{ text: prompt }]));
+  // Fehlt eine Zutat? Dann einmal mit der genauen Anzahl nachfragen.
+  const segs = input.split(/[,;\n]|\sund\s|\s\+\s/).map(t => t.trim()).filter(Boolean).length;
+  if (Array.isArray(list) && list.length < segs) {
+    try {
+      const again = asList(await callGemini([{ text: prompt + `\n\nDie Eingabe enthält ${segs} Zutaten. Gib genau ${segs} Items zurück, eins pro Zutat, in derselben Reihenfolge wie in der Eingabe.` }]));
+      if (Array.isArray(again) && again.length > list.length) list = again;
+    } catch (e) {}
+  }
+  if (window.__gemFail) setTimeout(() => showToast('Info zur Fehlersuche: ' + window.__gemFail), 2500);
   if (!Array.isArray(list) || !list.length) throw new Error('Keine Lebensmittel erkannt');
 
   return list.map(it => {
